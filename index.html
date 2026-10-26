@@ -1,865 +1,312 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Space Tank Duel - 2P MQTT Arena</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hardware Party Games</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
-
-    * {
-      user-select: none;
-      -webkit-user-select: none;
-      touch-action: manipulation;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Rajdhani', sans-serif;
-      background-color: #05050d;
-      color: #f8fafc;
-      overflow: hidden;
-      margin: 0;
-      padding: 0;
-      width: 100vw;
-      height: 100vh;
+      font-family: monospace, sans-serif;
+      background: #0b0f19;
+      color: #e2e8f0;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
-    .font-orbitron {
-      font-family: 'Orbitron', sans-serif;
+    /* ตารางคะแนนรวม */
+    .party-header {
+      width: 100%;
+      max-width: 480px;
+      background: #1e293b;
+      border: 2px solid #334155;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .score-row {
+      display: flex;
+      justify-content: space-around;
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 6px;
+    }
+    .p1-color { color: #38bdf8; }
+    .p2-color { color: #f43f5e; }
+
+    /* พื้นที่เล่นเกม */
+    #arena {
+      width: 100%;
+      max-width: 480px;
+      background: #020617;
+      border: 2px solid #475569;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+      min-height: 380px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
     }
 
-    /* Glow Effects */
-    .glow-blue {
-      text-shadow: 0 0 10px #38bdf8, 0 0 20px #38bdf8;
+    /* การแสดงผลลูกโป่ง */
+    .balloon-stage {
+      display: flex;
+      justify-content: space-around;
+      align-items: flex-end;
+      width: 100%;
+      height: 220px;
+      margin: 15px 0;
     }
-
-    .glow-red {
-      text-shadow: 0 0 10px #f43f5e, 0 0 20px #f43f5e;
+    .balloon-slot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      width: 45%;
+      height: 100%;
     }
-
-    .box-glow-blue {
-      box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
-      border-color: #38bdf8;
+    .balloon {
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: #000;
+      transition: width 0.1s, height 0.1s;
     }
+    .balloon-target { background: #facc15; }
+    .balloon-p1 { background: #38bdf8; }
+    .balloon-p2 { background: #f43f5e; }
 
-    .box-glow-red {
-      box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
-      border-color: #f43f5e;
+    /* ปุ่มควบคุม */
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      font-family: inherit;
     }
+    button:disabled { background: #475569; }
 
-    /* Scanline Overlay */
-    .scanlines {
-      background: linear-gradient(
-        rgba(18, 16, 16, 0) 50%, 
-        rgba(0, 0, 0, 0.25) 50%
-      );
-      background-size: 100% 4px;
-      pointer-events: none;
-    }
-
-    /* Touch Control Buttons Styling */
-    .btn-touch {
-      background: rgba(30, 41, 59, 0.7);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      active:scale-95;
+    /* กล่อง Debug รับข้อมูลจาก Hardware */
+    #debug-box {
+      width: 100%;
+      max-width: 480px;
+      margin-top: 12px;
+      background: #111;
+      color: #4ade80;
+      padding: 8px;
+      font-size: 12px;
+      height: 90px;
+      overflow-y: auto;
+      border-radius: 6px;
     }
   </style>
 </head>
-<body class="flex flex-col h-screen w-screen overflow-hidden relative">
-  <!-- Retro CRT Scanline Overlay -->
-  <div class="absolute inset-0 scanlines z-10 pointer-events-none"></div>
+<body>
 
-  <!-- TOP HEADER / HUD -->
-  <header class="relative z-20 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 p-2 sm:p-3 flex justify-between items-center text-xs sm:text-sm">
-    <!-- P1 HUD -->
-    <div class="flex items-center space-x-2 sm:space-x-4 w-1/3">
-      <div class="w-10 h-10 rounded-lg bg-sky-950 border border-sky-400 flex items-center justify-center font-bold text-sky-400 font-orbitron shadow-md">
-        P1
+  <!-- คะแนนรวมของทั้งปาร์ตี้ -->
+  <div class="party-header">
+    <div style="text-align:center; font-weight:bold;">🏆 TOTAL PARTY SCORE</div>
+    <div class="score-row">
+      <div class="p1-color">P1: <span id="total-p1">0</span> ดาว</div>
+      <div class="p2-color">P2: <span id="total-p2">0</span> ดาว</div>
+    </div>
+  </div>
+
+  <!-- โหมดมินิเกม: Balloon Memory Pump -->
+  <div id="arena">
+    <div id="game-title" style="font-weight: bold; color: #facc15;">MINI-GAME 1: BALLOON MEMORY PUMP</div>
+    <div id="instruction" style="font-size: 13px; color: #94a3b8;">กดปุ่มเริ่มรอบเพื่อจำขนาดเป้าหมาย</div>
+
+    <div class="balloon-stage">
+      <!-- ฝั่ง P1 -->
+      <div class="balloon-slot">
+        <div id="balloon-p1" class="balloon balloon-p1" style="width: 30px; height: 30px;">0%</div>
+        <span class="p1-color" style="margin-top:8px;">P1 (ปั๊มเอง)</span>
+        <span id="p1-status" style="font-size: 12px; color: #94a3b8;">รอส่งค่า...</span>
       </div>
-      <div class="flex-1 max-w-[180px]">
-        <div class="flex justify-between items-center mb-1">
-          <span class="font-bold text-sky-400 font-orbitron text-xs">BLUE TANK</span>
-          <span id="p1-score" class="text-sky-300 font-bold">0 PTS</span>
-        </div>
-        <!-- Health Bar -->
-        <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700">
-          <div id="p1-hp" class="bg-sky-400 h-full transition-all duration-200 w-full"></div>
-        </div>
-        <!-- Shield Cooldown / Indicator -->
-        <div class="flex justify-between items-center mt-1 text-[10px] text-slate-400">
-          <span>Shield: <span id="p1-shield-txt" class="text-sky-400">READY</span></span>
-          <span id="p1-key-badge" class="bg-sky-900/60 text-sky-300 px-1.5 py-0.5 rounded border border-sky-600 font-mono">KEY: -</span>
-        </div>
+
+      <!-- เป้าหมายตรงกลาง (จะหายไปหลังหมดเวลา) -->
+      <div class="balloon-slot" id="target-slot">
+        <div id="balloon-target" class="balloon balloon-target" style="width: 30px; height: 30px;">?</div>
+        <span style="color: #facc15; margin-top:8px;">TARGET</span>
+      </div>
+
+      <!-- ฝั่ง P2 -->
+      <div class="balloon-slot">
+        <div id="balloon-p2" class="balloon balloon-p2" style="width: 30px; height: 30px;">0%</div>
+        <span class="p2-color" style="margin-top:8px;">P2 (ปั๊มเอง)</span>
+        <span id="p2-status" style="font-size: 12px; color: #94a3b8;">รอส่งค่า...</span>
       </div>
     </div>
 
-    <!-- CENTER STATUS / MQTT -->
-    <div class="flex flex-col items-center justify-center w-1/3 text-center">
-      <h1 class="font-orbitron font-black text-sm sm:text-xl text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-indigo-300 to-rose-400 tracking-wider">
-        SPACE TANK DUEL
-      </h1>
-      <div id="mqtt-status-badge" class="mt-1 flex items-center space-x-1 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[10px] sm:text-xs">
-        <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse" id="mqtt-dot"></span>
-        <span id="mqtt-status-text">Connecting MQTT...</span>
-      </div>
-    </div>
+    <div id="result-text" style="font-weight: bold; min-height: 24px;"></div>
+    <button id="start-btn" onclick="startRound()">เริ่มรอบใหม่ (3s จำขนาด)</button>
+  </div>
 
-    <!-- P2 HUD -->
-    <div class="flex items-center space-x-2 sm:space-x-4 w-1/3 justify-end">
-      <div class="flex-1 max-w-[180px] text-right">
-        <div class="flex justify-between items-center mb-1">
-          <span id="p2-score" class="text-rose-300 font-bold">0 PTS</span>
-          <span class="font-bold text-rose-400 font-orbitron text-xs">RED TANK</span>
-        </div>
-        <!-- Health Bar -->
-        <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden border border-slate-700">
-          <div id="p2-hp" class="bg-rose-500 h-full transition-all duration-200 w-full"></div>
-        </div>
-        <!-- Shield Cooldown / Indicator -->
-        <div class="flex justify-between items-center mt-1 text-[10px] text-slate-400">
-          <span id="p2-key-badge" class="bg-rose-900/60 text-rose-300 px-1.5 py-0.5 rounded border border-rose-600 font-mono">KEY: -</span>
-          <span>Shield: <span id="p2-shield-txt" class="text-rose-400">READY</span></span>
-        </div>
-      </div>
-      <div class="w-10 h-10 rounded-lg bg-rose-950 border border-rose-500 flex items-center justify-center font-bold text-rose-400 font-orbitron shadow-md">
-        P2
-      </div>
-    </div>
-  </header>
-
-  <!-- MAIN GAME CANVAS CONTAINER -->
-  <main class="relative flex-1 w-full h-full bg-slate-950 flex items-center justify-center overflow-hidden">
-    <canvas id="gameCanvas" class="block w-full h-full bg-slate-950"></canvas>
-
-    <!-- OVERLAY: GAME START / GAME OVER -->
-    <div id="game-overlay" class="absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center p-4">
-      <div class="max-w-md w-full text-center space-y-6">
-        <div class="space-y-2">
-          <h2 id="overlay-title" class="text-3xl sm:text-5xl font-orbitron font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-rose-500">
-            ARENA READY
-          </h2>
-          <p id="overlay-subtitle" class="text-slate-400 text-sm">
-            Control tanks via Keypad 4x4 (MQTT), Keyboard, or Touch controls.
-          </p>
-        </div>
-
-        <!-- Keypad Control Cheat Sheet -->
-        <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800 text-left text-xs space-y-2 font-mono text-slate-300">
-          <div class="text-sky-400 font-bold font-orbitron text-center mb-1">KEYPAD MAPPING (4x4)</div>
-          <div class="grid grid-cols-2 gap-2 text-[11px]">
-            <div>• <b class="text-white">2 / Up</b>: Forward</div>
-            <div>• <b class="text-white">8 / Down</b>: Reverse</div>
-            <div>• <b class="text-white">4 / Left</b>: Turn Left</div>
-            <div>• <b class="text-white">6 / Right</b>: Turn Right</div>
-            <div>• <b class="text-white">5 / 1 / C / Space</b>: Fire Laser</div>
-            <div>• <b class="text-white">* / #</b>: Energy Shield</div>
-          </div>
-        </div>
-
-        <button id="start-btn" class="w-full py-3 sm:py-4 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-orbitron font-bold text-lg rounded-xl shadow-lg shadow-sky-500/30 transition-all active:scale-95">
-          START MATCH
-        </button>
-      </div>
-    </div>
-  </main>
-
-  <!-- TOUCH ON-SCREEN CONTROLS (FOR MOBILE DUAL CONTROL) -->
-  <footer class="relative z-20 bg-slate-950/90 border-t border-slate-800 p-2 grid grid-cols-2 gap-2 h-36 sm:h-44">
-    <!-- P1 TOUCH CONTROLS -->
-    <div class="flex items-center justify-between bg-sky-950/30 p-1.5 rounded-xl border border-sky-900/40">
-      <!-- D-PAD P1 -->
-      <div class="grid grid-cols-3 gap-1 w-28 h-28 sm:w-32 sm:h-32">
-        <div></div>
-        <button onmousedown="handleTouchInput(1, '2')" onmouseup="handleTouchUp(1)" ontouchstart="handleTouchInput(1, '2')" ontouchend="handleTouchUp(1)" class="btn-touch rounded-lg text-sky-400 font-bold text-xs flex items-center justify-center">▲</button>
-        <div></div>
-        <button onmousedown="handleTouchInput(1, '4')" onmouseup="handleTouchUp(1)" ontouchstart="handleTouchInput(1, '4')" ontouchend="handleTouchUp(1)" class="btn-touch rounded-lg text-sky-400 font-bold text-xs flex items-center justify-center">◀</button>
-        <button onmousedown="handleTouchInput(1, '8')" onmouseup="handleTouchUp(1)" ontouchstart="handleTouchInput(1, '8')" ontouchend="handleTouchUp(1)" class="btn-touch rounded-lg text-sky-400 font-bold text-xs flex items-center justify-center">▼</button>
-        <button onmousedown="handleTouchInput(1, '6')" onmouseup="handleTouchUp(1)" ontouchstart="handleTouchInput(1, '6')" ontouchend="handleTouchUp(1)" class="btn-touch rounded-lg text-sky-400 font-bold text-xs flex items-center justify-center">▶</button>
-      </div>
-      <!-- ACTION BTNS P1 -->
-      <div class="flex flex-col space-y-2">
-        <button onmousedown="handleTouchInput(1, '5')" ontouchstart="handleTouchInput(1, '5')" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-sky-500/30 border border-sky-400 text-sky-300 font-orbitron font-bold text-xs flex items-center justify-center active:bg-sky-400 active:text-black">FIRE</button>
-        <button onmousedown="handleTouchInput(1, '*')" ontouchstart="handleTouchInput(1, '*')" class="w-12 h-10 sm:w-14 sm:h-10 rounded-lg bg-indigo-500/30 border border-indigo-400 text-indigo-300 font-orbitron font-bold text-[10px] flex items-center justify-center active:bg-indigo-400 active:text-black">SHIELD</button>
-      </div>
-    </div>
-
-    <!-- P2 TOUCH CONTROLS -->
-    <div class="flex items-center justify-between bg-rose-950/30 p-1.5 rounded-xl border border-rose-900/40">
-      <!-- ACTION BTNS P2 -->
-      <div class="flex flex-col space-y-2">
-        <button onmousedown="handleTouchInput(2, '5')" ontouchstart="handleTouchInput(2, '5')" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-rose-500/30 border border-rose-400 text-rose-300 font-orbitron font-bold text-xs flex items-center justify-center active:bg-rose-400 active:text-black">FIRE</button>
-        <button onmousedown="handleTouchInput(2, '*')" ontouchstart="handleTouchInput(2, '*')" class="w-12 h-10 sm:w-14 sm:h-10 rounded-lg bg-amber-500/30 border border-amber-400 text-amber-300 font-orbitron font-bold text-[10px] flex items-center justify-center active:bg-amber-400 active:text-black">SHIELD</button>
-      </div>
-      <!-- D-PAD P2 -->
-      <div class="grid grid-cols-3 gap-1 w-28 h-28 sm:w-32 sm:h-32">
-        <div></div>
-        <button onmousedown="handleTouchInput(2, '2')" onmouseup="handleTouchUp(2)" ontouchstart="handleTouchInput(2, '2')" ontouchend="handleTouchUp(2)" class="btn-touch rounded-lg text-rose-400 font-bold text-xs flex items-center justify-center">▲</button>
-        <div></div>
-        <button onmousedown="handleTouchInput(2, '4')" onmouseup="handleTouchUp(2)" ontouchstart="handleTouchInput(2, '4')" ontouchend="handleTouchUp(2)" class="btn-touch rounded-lg text-rose-400 font-bold text-xs flex items-center justify-center">◀</button>
-        <button onmousedown="handleTouchInput(2, '8')" onmouseup="handleTouchUp(2)" ontouchstart="handleTouchInput(2, '8')" ontouchend="handleTouchUp(2)" class="btn-touch rounded-lg text-rose-400 font-bold text-xs flex items-center justify-center">▼</button>
-        <button onmousedown="handleTouchInput(2, '6')" onmouseup="handleTouchUp(2)" ontouchstart="handleTouchInput(2, '6')" ontouchend="handleTouchUp(2)" class="btn-touch rounded-lg text-rose-400 font-bold text-xs flex items-center justify-center">▶</button>
-      </div>
-    </div>
-  </footer>
+  <div id="debug-box">--- MQTT Hardware Logs ---<br></div>
 
   <script>
-    /* ==========================================================================
-       1. AUDIO SYNTHESIZER (Web Audio API)
-       ========================================================================== */
-    class SoundEffects {
-      constructor() {
-        this.ctx = null;
-      }
-      init() {
-        if (!this.ctx) {
-          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-      }
-      playLaser() {
-        if (!this.ctx) return;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(800, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start();
-        osc.stop(this.ctx.currentTime + 0.15);
-      }
-      playExplosion() {
-        if (!this.ctx) return;
-        const count = 500;
-        const buffer = this.ctx.createBuffer(1, count, this.ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-        for (let i = 0; i < count; i++) {
-          data[i] = Math.random() * 2 - 1;
-        }
-        const noise = this.ctx.createBufferSource();
-        noise.buffer = buffer;
-        const filter = this.ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(300, this.ctx.currentTime);
-        filter.frequency.linearRampToValueAtTime(10, this.ctx.currentTime + 0.4);
-        const gain = this.ctx.createGain();
-        gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.4);
-        noise.connect(filter);
-        filter.connect(gain);
-        gain.connect(this.ctx.destination);
-        noise.start();
-        noise.stop(this.ctx.currentTime + 0.4);
-      }
-      playShield() {
-        if (!this.ctx) return;
-        const osc = this.ctx.createOscillator();
-        const gain = this.ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(300, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(600, this.ctx.currentTime + 0.25);
-        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
-        osc.connect(gain);
-        gain.connect(this.ctx.destination);
-        osc.start();
-        osc.stop(this.ctx.currentTime + 0.25);
-      }
-    }
-    const sfx = new SoundEffects();
-
-    /* ==========================================================================
-       2. GAME SETUP & CANVAS SETUP
-       ========================================================================== */
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-
-    let width = 0;
-    let height = 0;
-
-    function resizeCanvas() {
-      const container = canvas.parentElement;
-      width = container.clientWidth;
-      height = container.clientHeight;
-      canvas.width = width;
-      canvas.height = height;
-    }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
-
-    /* ==========================================================================
-       3. GAME ENGINE & ENTITIES
-       ========================================================================== */
-    let gameState = 'START'; // START, PLAYING, GAMEOVER
-    let p1Score = 0;
-    let p2Score = 0;
-
-    // Obstacles
-    let obstacles = [];
-
-    function generateObstacles() {
-      obstacles = [
-        { x: width * 0.5 - 25, y: height * 0.2 - 25, w: 50, h: 50 },
-        { x: width * 0.5 - 25, y: height * 0.8 - 25, w: 50, h: 50 },
-        { x: width * 0.3 - 20, y: height * 0.5 - 40, w: 40, h: 80 },
-        { x: width * 0.7 - 20, y: height * 0.5 - 40, w: 40, h: 80 }
-      ];
+    function log(msg) {
+      const box = document.getElementById('debug-box');
+      box.innerHTML += `> ${msg}<br>`;
+      box.scrollTop = box.scrollHeight;
     }
 
-    // Tank Class
-    class Tank {
-      constructor(id, x, y, color, angle) {
-        this.id = id;
-        this.x = x;
-        this.y = y;
-        this.color = color;
-        this.angle = angle;
-        this.speed = 0;
-        this.maxSpeed = 1.5;  // ลดความเร็วจาก 3.2 เหลือ 1.5
-        this.rotSpeed = 0.03; // ลดความเร็วการหมุนจาก 0.065 เหลือ 0.03
-        this.hp = 100;
-        this.radius = 18;
-        
-        // Cooldowns
-        this.fireCooldown = 0;
-        this.shieldActive = false;
-        this.shieldTimer = 0;
-        this.shieldCooldown = 0;
-
-        // Current Movement States from Keypad
-        this.isMovingForward = false;
-        this.isMovingBackward = false;
-        this.isTurningLeft = false;
-        this.isTurningRight = false;
-      }
-
-      reset(x, y, angle) {
-        this.x = x;
-        this.y = y;
-        this.angle = angle;
-        this.speed = 0;
-        this.hp = 100;
-        this.fireCooldown = 0;
-        this.shieldActive = false;
-        this.shieldTimer = 0;
-        this.shieldCooldown = 0;
-        this.stopMovement();
-      }
-
-      stopMovement() {
-        this.isMovingForward = false;
-        this.isMovingBackward = false;
-        this.isTurningLeft = false;
-        this.isTurningRight = false;
-      }
-
-      update() {
-        // Cooldowns
-        if (this.fireCooldown > 0) this.fireCooldown--;
-        if (this.shieldCooldown > 0) this.shieldCooldown--;
-
-        if (this.shieldActive) {
-          this.shieldTimer--;
-          if (this.shieldTimer <= 0) {
-            this.shieldActive = false;
-          }
-        }
-
-        // Steering
-        if (this.isTurningLeft) this.angle -= this.rotSpeed;
-        if (this.isTurningRight) this.angle += this.rotSpeed;
-
-        // Accelerate / Decelerate
-        if (this.isMovingForward) {
-          this.speed = this.maxSpeed;
-        } else if (this.isMovingBackward) {
-          this.speed = -this.maxSpeed * 0.6;
-        } else {
-          this.speed *= 0.85; // Friction
-        }
-
-        // Calculate next position
-        let nextX = this.x + Math.cos(this.angle) * this.speed;
-        let nextY = this.y + Math.sin(this.angle) * this.speed;
-
-        // Arena Boundaries
-        nextX = Math.max(this.radius, Math.min(width - this.radius, nextX));
-        nextY = Math.max(this.radius, Math.min(height - this.radius, nextY));
-
-        // Obstacle Collisions
-        let hitObstacle = false;
-        for (let obs of obstacles) {
-          if (
-            nextX + this.radius > obs.x &&
-            nextX - this.radius < obs.x + obs.w &&
-            nextY + this.radius > obs.y &&
-            nextY - this.radius < obs.y + obs.h
-          ) {
-            hitObstacle = true;
-            break;
-          }
-        }
-
-        if (!hitObstacle) {
-          this.x = nextX;
-          this.y = nextY;
-        }
-      }
-
-      fire() {
-        if (this.fireCooldown <= 0) {
-          this.fireCooldown = 45; // เพิ่มระยะเวลาดีเลย์การยิงจาก 15 เป็น 45 เฟรม
-          sfx.playLaser();
-
-          // Spawn Bullet at Cannon Tip
-          const tipX = this.x + Math.cos(this.angle) * (this.radius + 8);
-          const tipY = this.y + Math.sin(this.angle) * (this.radius + 8);
-          bullets.push(new Bullet(this.id, tipX, tipY, this.angle, this.color));
-        }
-      }
-
-      activateShield() {
-        if (this.shieldCooldown <= 0) {
-          this.shieldActive = true;
-          this.shieldTimer = 180; // ~3 Seconds
-          this.shieldCooldown = 450; // ~7.5 Seconds
-          sfx.playShield();
-        }
-      }
-
-      draw() {
-        ctx.save();
-        ctx.translate(this.x, this.y);
-        ctx.rotate(this.angle);
-
-        // Tank Body
-        ctx.fillStyle = this.color;
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-
-        // Tracks
-        ctx.fillStyle = '#1e293b';
-        ctx.fillRect(-this.radius, -this.radius - 3, this.radius * 2, 5);
-        ctx.fillRect(-this.radius, this.radius - 2, this.radius * 2, 5);
-
-        // Main Hull
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.roundRect(-this.radius + 2, -this.radius + 2, this.radius * 2 - 4, this.radius * 2 - 4, 4);
-        ctx.fill();
-        ctx.stroke();
-
-        // Cannon Barrel
-        ctx.fillStyle = '#f8fafc';
-        ctx.fillRect(0, -3, this.radius + 10, 6);
-
-        // Turret Center
-        ctx.beginPath();
-        ctx.arc(0, 0, 8, 0, Math.PI * 2);
-        ctx.fillStyle = '#0f172a';
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.restore();
-
-        // Shield Effect
-        if (this.shieldActive) {
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(this.x, this.y, this.radius + 12, 0, Math.PI * 2);
-          ctx.strokeStyle = this.id === 1 ? '#38bdf8' : '#f43f5e';
-          ctx.lineWidth = 3;
-          ctx.shadowColor = this.id === 1 ? '#38bdf8' : '#f43f5e';
-          ctx.shadowBlur = 15;
-          ctx.stroke();
-          ctx.restore();
-        }
-      }
-    }
-
-    // Bullet Class
-    class Bullet {
-      constructor(ownerId, x, y, angle, color) {
-        this.ownerId = ownerId;
-        this.x = x;
-        this.y = y;
-        this.angle = angle;
-        this.speed = 3.5; // ลดความเร็วกระสุนจาก 8 เหลือ 3.5
-        this.color = color;
-        this.radius = 4;
-        this.life = 240; // เพิ่มระยะเวลากระสุนในจอจาก 120 เป็น 240 เฟรม
-      }
-
-      update() {
-        this.x += Math.cos(this.angle) * this.speed;
-        this.y += Math.sin(this.angle) * this.speed;
-        this.life--;
-      }
-
-      draw() {
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = this.color;
-        ctx.shadowColor = this.color;
-        ctx.shadowBlur = 10;
-        ctx.fill();
-        ctx.restore();
-      }
-    }
-
-    // Particles Class (Explosions)
-    class Particle {
-      constructor(x, y, color) {
-        this.x = x;
-        this.y = y;
-        this.color = color;
-        this.vx = (Math.random() - 0.5) * 3; // ลดความเร็วสะเก็ดระเบิด
-        this.vy = (Math.random() - 0.5) * 3; // ลดความเร็วสะเก็ดระเบิด
-        this.alpha = 1.0;
-        this.size = Math.random() * 4 + 2;
-      }
-      update() {
-        this.x += this.vx;
-        this.y += this.vy;
-        this.alpha -= 0.015; // ทำให้ระเบิดจางช้าลง
-      }
-      draw() {
-        ctx.save();
-        ctx.globalAlpha = Math.max(0, this.alpha);
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      }
-    }
-
-    // Instantiation
-    const p1 = new Tank(1, 100, height / 2, '#38bdf8', 0);
-    const p2 = new Tank(2, width - 100, height / 2, '#f43f5e', Math.PI);
-    let bullets = [];
-    let particles = [];
-
-    function createExplosion(x, y, color, count = 20) {
-      sfx.playExplosion();
-      for (let i = 0; i < count; i++) {
-        particles.push(new Particle(x, y, color));
-      }
-    }
-
-    /* ==========================================================================
-       4. CONTROL MAPPING & MQTT INPUT PROCESSING
-       ========================================================================== */
-    function processInput(playerId, key) {
-      const tank = playerId === 1 ? p1 : p2;
-      const keyUpper = String(key).toUpperCase();
-
-      // UI Badge Update
-      const badge = document.getElementById(`p${playerId}-key-badge`);
-      if (badge) badge.textContent = `KEY: ${keyUpper}`;
-
-      // Movement & Actions Mapping
-      switch (keyUpper) {
-        case '2':
-        case 'W':
-        case 'ARROWUP':
-          tank.stopMovement();
-          tank.isMovingForward = true;
-          break;
-        case '8':
-        case 'S':
-        case 'ARROWDOWN':
-          tank.stopMovement();
-          tank.isMovingBackward = true;
-          break;
-        case '4':
-        case 'A':
-        case 'ARROWLEFT':
-          tank.isTurningLeft = true;
-          tank.isTurningRight = false;
-          break;
-        case '6':
-        case 'D':
-        case 'ARROWRIGHT':
-          tank.isTurningRight = true;
-          tank.isTurningLeft = false;
-          break;
-        case '5':
-        case '1':
-        case 'C':
-        case ' ':
-        case 'ENTER':
-          tank.fire();
-          break;
-        case '*':
-        case '#':
-        case 'SHIFT':
-        case 'B':
-          tank.activateShield();
-          break;
-        case 'STOP':
-          tank.stopMovement();
-          break;
-      }
-    }
-
-    // Touch Controls Handlers
-    window.handleTouchInput = function(playerId, key) {
-      sfx.init();
-      processInput(playerId, key);
-    };
-
-    window.handleTouchUp = function(playerId) {
-      const tank = playerId === 1 ? p1 : p2;
-      tank.stopMovement();
-    };
-
-    // Keyboard Fallback
-    window.addEventListener('keydown', (e) => {
-      sfx.init();
-      const code = e.key.toUpperCase();
-
-      // Player 1: W/A/S/D + Space / Shift
-      if (['W', 'A', 'S', 'D', ' '].includes(code) || e.key === 'Shift') {
-        let mappedKey = code;
-        if (code === 'W') mappedKey = '2';
-        if (code === 'S') mappedKey = '8';
-        if (code === 'A') mappedKey = '4';
-        if (code === 'D') mappedKey = '6';
-        if (code === ' ') mappedKey = '5';
-        if (e.key === 'Shift') mappedKey = '*';
-        processInput(1, mappedKey);
-      }
-
-      // Player 2: Arrow Keys + Enter
-      if (['ARROWUP', 'ARROWDOWN', 'ARROWLEFT', 'ARROWRIGHT', 'ENTER'].includes(code)) {
-        let mappedKey = code;
-        if (code === 'ARROWUP') mappedKey = '2';
-        if (code === 'ARROWDOWN') mappedKey = '8';
-        if (code === 'ARROWLEFT') mappedKey = '4';
-        if (code === 'ARROWRIGHT') mappedKey = '6';
-        if (code === 'ENTER') mappedKey = '5';
-        processInput(2, mappedKey);
-      }
-    });
-
-    window.addEventListener('keyup', (e) => {
-      const code = e.key.toUpperCase();
-      if (['W', 'S', 'A', 'D'].includes(code)) p1.stopMovement();
-      if (['ARROWUP', 'ARROWDOWN', 'ARROWLEFT', 'ARROWRIGHT'].includes(code)) p2.stopMovement();
-    });
-
-    /* ==========================================================================
-       5. MQTT CLIENT INTEGRATION
-       ========================================================================== */
-    const mqttDot = document.getElementById('mqtt-dot');
-    const mqttStatusText = document.getElementById('mqtt-status-text');
-
-    const mqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
-      clientId: 'WebArenaClient_' + Math.random().toString(16).substr(2, 8),
-      keepalive: 60
-    });
-
-    mqttClient.on('connect', () => {
-      mqttDot.className = "w-2 h-2 rounded-full bg-emerald-400";
-      mqttStatusText.textContent = "MQTT: ONLINE";
-      document.getElementById('mqtt-status-badge').className = "mt-1 flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] sm:text-xs";
-
-      mqttClient.subscribe('mygame/p1/key');
-      mqttClient.subscribe('mygame/p2/key');
-    });
-
-    mqttClient.on('error', (err) => {
-      mqttDot.className = "w-2 h-2 rounded-full bg-rose-500";
-      mqttStatusText.textContent = "MQTT Error";
-    });
-
-    mqttClient.on('message', (topic, message) => {
-      const keyPayload = message.toString().trim();
-      if (topic === 'mygame/p1/key') {
-        processInput(1, keyPayload);
-      } else if (topic === 'mygame/p2/key') {
-        processInput(2, keyPayload);
-      }
-    });
-
-    /* ==========================================================================
-       6. MAIN GAME LOOP & RENDER
-       ========================================================================== */
-    function updateHUD() {
-      document.getElementById('p1-hp').style.width = `${Math.max(0, p1.hp)}%`;
-      document.getElementById('p2-hp').style.width = `${Math.max(0, p2.hp)}%`;
-
-      document.getElementById('p1-score').textContent = `${p1Score} PTS`;
-      document.getElementById('p2-score').textContent = `${p2Score} PTS`;
-
-      // Shield Cooldown HUD
-      document.getElementById('p1-shield-txt').textContent = p1.shieldActive ? 'ACTIVE' : (p1.shieldCooldown <= 0 ? 'READY' : `${Math.ceil(p1.shieldCooldown/60)}s`);
-      document.getElementById('p2-shield-txt').textContent = p2.shieldActive ? 'ACTIVE' : (p2.shieldCooldown <= 0 ? 'READY' : `${Math.ceil(p2.shieldCooldown/60)}s`);
-    }
-
-    function checkCollisions() {
-      // Bullets vs Tanks / Obstacles / Arena
-      for (let i = bullets.length - 1; i >= 0; i--) {
-        const b = bullets[i];
-        b.update();
-
-        // Offscreen or Lifetime end
-        if (b.x < 0 || b.x > width || b.y < 0 || b.y > height || b.life <= 0) {
-          bullets.splice(i, 1);
-          continue;
-        }
-
-        // Bullets vs Obstacles
-        let hitObs = false;
-        for (let obs of obstacles) {
-          if (b.x > obs.x && b.x < obs.x + obs.w && b.y > obs.y && b.y < obs.y + obs.h) {
-            createExplosion(b.x, b.y, '#94a3b8', 6);
-            hitObs = true;
-            break;
-          }
-        }
-        if (hitObs) {
-          bullets.splice(i, 1);
-          continue;
-        }
-
-        // Bullets vs Tanks
-        const targetTank = b.ownerId === 1 ? p2 : p1;
-        const dist = Math.hypot(b.x - targetTank.x, b.y - targetTank.y);
-
-        if (dist < targetTank.radius + b.radius) {
-          // Hit Tank!
-          bullets.splice(i, 1);
-
-          if (targetTank.shieldActive) {
-            createExplosion(b.x, b.y, '#38bdf8', 10);
-            sfx.playShield();
-          } else {
-            targetTank.hp -= 15;
-            createExplosion(b.x, b.y, targetTank.color, 15);
-
-            if (targetTank.hp <= 0) {
-              // Game Over / Round Win
-              createExplosion(targetTank.x, targetTank.y, targetTank.color, 40);
-              if (b.ownerId === 1) p1Score++; else p2Score++;
-              endGame(b.ownerId);
-            }
-          }
-        }
-      }
-    }
-
-    function drawGrid() {
-      ctx.strokeStyle = 'rgba(51, 65, 85, 0.2)';
-      ctx.lineWidth = 1;
-      const gridSize = 40;
-
-      for (let x = 0; x < width; x += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-      }
-      for (let y = 0; y < height; y += gridSize) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-      }
-    }
-
-    function drawObstacles() {
-      ctx.fillStyle = '#1e293b';
-      ctx.strokeStyle = '#475569';
-      ctx.lineWidth = 2;
-
-      for (let obs of obstacles) {
-        ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-        ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
-      }
-    }
-
-    function gameLoop() {
-      // Clear
-      ctx.clearRect(0, 0, width, height);
-
-      drawGrid();
-      drawObstacles();
-
-      if (gameState === 'PLAYING') {
-        p1.update();
-        p2.update();
-        checkCollisions();
-        updateHUD();
-      }
-
-      // Draw Entities
-      p1.draw();
-      p2.draw();
-
-      bullets.forEach(b => b.draw());
-
-      // Particles
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.update();
-        p.draw();
-        if (p.alpha <= 0) particles.splice(i, 1);
-      }
-
-      requestAnimationFrame(gameLoop);
-    }
-
-    /* ==========================================================================
-       7. MATCH MANAGEMENT
-       ========================================================================== */
-    const overlay = document.getElementById('game-overlay');
-    const overlayTitle = document.getElementById('overlay-title');
-    const overlaySubtitle = document.getElementById('overlay-subtitle');
+    // ข้อมูลคะแนนรวม
+    let totalScore = { p1: 0, p2: 0 };
+    let gameState = 'IDLE'; // IDLE, MEMORIZE, PLAYING, ROUND_OVER
+    let targetSize = 0; // ขนาดเป้าหมาย (30px - 140px)
+    
+    // ข้อมูลของผู้เล่นในแต่ละรอบ
+    let p1Data = { current: 30, locked: false, popped: false };
+    let p2Data = { current: 30, locked: false, popped: false };
+
+    // DOM Elements
+    const bTarget = document.getElementById('balloon-target');
+    const bP1 = document.getElementById('balloon-p1');
+    const bP2 = document.getElementById('balloon-p2');
+    const targetSlot = document.getElementById('target-slot');
+    const instruction = document.getElementById('instruction');
+    const resultText = document.getElementById('result-text');
     const startBtn = document.getElementById('start-btn');
 
-    function startMatch() {
-      sfx.init();
-      resizeCanvas();
-      generateObstacles();
+    // --- เชื่อมต่อ MQTT Broker ---
+    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+    client.on('connect', () => {
+      log('Connected to MQTT Broker.');
+      // บอร์ดส่งค่าผ่าน Topic: mygame/p1/data และ mygame/p2/data
+      client.subscribe(['mygame/p1/data', 'mygame/p2/data']);
+    });
 
-      p1.reset(80, height / 2, 0);
-      p2.reset(width - 80, height / 2, Math.PI);
-      bullets = [];
-      particles = [];
+    // เริ่มรอบเกม
+    function startRound() {
+      gameState = 'MEMORIZE';
+      startBtn.disabled = true;
+      resultText.textContent = '';
+      
+      // รีเซ็ตสถานะผู้เล่น
+      p1Data = { current: 30, locked: false, popped: false };
+      p2Data = { current: 30, locked: false, popped: false };
+      updateBalloon(bP1, 30);
+      updateBalloon(bP2, 30);
+      document.getElementById('p1-status').textContent = 'กำลังปั๊ม...';
+      document.getElementById('p2-status').textContent = 'กำลังปั๊ม...';
 
-      gameState = 'PLAYING';
-      overlay.classList.add('hidden');
+      // สุ่มขนาดเป้าหมาย (60px ถึง 150px)
+      targetSize = Math.floor(Math.random() * 90) + 60;
+      targetSlot.style.visibility = 'visible';
+      updateBalloon(bTarget, targetSize);
+      bTarget.textContent = 'จำไว้!';
+
+      instruction.textContent = 'จำขนาดลูกโป่งสีเหลืองนี้ให้ดี! (3 วินาที)';
+
+      // นับถอยหลัง 3 วินาที แล้วซ่อนเป้าหมาย ให้เริ่มปั๊ม
+      setTimeout(() => {
+        targetSlot.style.visibility = 'hidden';
+        gameState = 'PLAYING';
+        instruction.textContent = 'เริ่มปั๊มมือ! แล้วกดปุ่มล็อกผลบน Keypad';
+      }, 3000);
     }
 
-    function endGame(winnerId) {
-      gameState = 'GAMEOVER';
-      overlay.classList.remove('hidden');
+    function updateBalloon(el, size) {
+      el.style.width = size + 'px';
+      el.style.height = size + 'px';
+      el.textContent = Math.round(size);
+    }
 
-      if (winnerId === 1) {
-        overlayTitle.textContent = "PLAYER 1 WINS!";
-        overlayTitle.className = "text-3xl sm:text-5xl font-orbitron font-black glow-blue text-sky-400";
-        overlaySubtitle.textContent = "Blue Tank destroyed the target arena!";
-      } else {
-        overlayTitle.textContent = "PLAYER 2 WINS!";
-        overlayTitle.className = "text-3xl sm:text-5xl font-orbitron font-black glow-red text-rose-500";
-        overlaySubtitle.textContent = "Red Tank dominated the arena!";
+    // ประมวลผลข้อมูลที่ส่งมาจาก Arduino
+    client.on('message', (topic, message) => {
+      try {
+        const payload = JSON.parse(message.toString());
+        // รูปแบบ JSON ที่ส่งมา: {"val": 75, "lock": true}
+        if (topic === 'mygame/p1/data') handlePlayerUpdate(1, payload);
+        if (topic === 'mygame/p2/data') handlePlayerUpdate(2, payload);
+      } catch(e) {
+        // รองรับกรณีส่งข้อความธรรมดา (fallback)
+        log(`Parse error on ${topic}: ${message.toString()}`);
+      }
+    });
+
+    function handlePlayerUpdate(playerId, data) {
+      if (gameState !== 'PLAYING') return;
+
+      let p = (playerId === 1) ? p1Data : p2Data;
+      let el = (playerId === 1) ? bP1 : bP2;
+      let statusEl = document.getElementById(playerId === 1 ? 'p1-status' : 'p2-status');
+
+      if (p.locked) return; // ล็อกคะแนนแล้วไม่รับค่าเพิ่ม
+
+      // อัปเดตขนาดตามจำนวนที่ปั๊ม
+      p.current = Math.max(30, data.val);
+      updateBalloon(el, p.current);
+
+      // ถ้าปั๊มเกินขนาดเกินไป (เช่น เกินเป้า 25px) ถือว่าแตกทันที
+      if (p.current > targetSize + 25) {
+        p.popped = true;
+        p.locked = true;
+        el.textContent = 'แตก!';
+        el.style.background = '#475569';
+        statusEl.textContent = '💥 ลูกโป่งแตก!';
       }
 
-      startBtn.textContent = "REMATCH";
+      // เมื่อผู้เล่นกดปุ่มล็อกผลบน Keypad (เช่น ส่ง lock: true)
+      if (data.lock && !p.locked) {
+        p.locked = true;
+        statusEl.textContent = '🔒 ล็อกผลแล้ว';
+      }
+
+      // ถ้าทั้งสองคนล็อกผลแล้ว ให้ตัดสินคะแนน
+      if (p1Data.locked && p2Data.locked) {
+        evaluateWinner();
+      }
     }
 
-    startBtn.addEventListener('click', startMatch);
+    // ตัดสินผลแพ้ชนะ
+    function evaluateWinner() {
+      gameState = 'ROUND_OVER';
+      targetSlot.style.visibility = 'visible'; // เฉลยเป้าหมาย
+      bTarget.textContent = targetSize;
 
-    // Initial Setup
-    generateObstacles();
-    requestAnimationFrame(gameLoop);
+      let diff1 = p1Data.popped ? 999 : Math.abs(p1Data.current - targetSize);
+      let diff2 = p2Data.popped ? 999 : Math.abs(p2Data.current - targetSize);
+
+      if (diff1 === 999 && diff2 === 999) {
+        resultText.textContent = '💥 ลูกโป่งแตกทั้งคู่ ไม่มีใครได้แต้ม!';
+      } else if (diff1 < diff2) {
+        resultText.textContent = '🎉 PLAYER 1 ชนะรอบนี้! (ใกล้เคียงที่สุด)';
+        totalScore.p1++;
+      } else if (diff2 < diff1) {
+        resultText.textContent = '🎉 PLAYER 2 ชนะรอบนี้! (ใกล้เคียงที่สุด)';
+        totalScore.p2++;
+      } else {
+        resultText.textContent = '🤝 เสมอกัน!';
+      }
+
+      document.getElementById('total-p1').textContent = totalScore.p1;
+      document.getElementById('total-p2').textContent = totalScore.p2;
+      startBtn.disabled = false;
+      instruction.textContent = 'จบรอบแล้ว กดเริ่มรอบถัดไปได้เลย';
+    }
+
+    // ปุ่มจำลองการทดสอบบนคีย์บอร์ดคอมพิวเตอร์
+    // P1: กด 'W' เพื่อปั๊ม, 'S' เพื่อล็อกผล
+    // P2: กด 'ArrowUp' เพื่อปั๊ม, 'ArrowDown' เพื่อล็อกผล
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'w') handlePlayerUpdate(1, { val: p1Data.current + 8, lock: false });
+      if (e.key === 's') handlePlayerUpdate(1, { val: p1Data.current, lock: true });
+      if (e.key === 'ArrowUp') handlePlayerUpdate(2, { val: p2Data.current + 8, lock: false });
+      if (e.key === 'ArrowDown') handlePlayerUpdate(2, { val: p2Data.current, lock: true });
+    });
   </script>
 </body>
 </html>
