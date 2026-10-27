@@ -2,104 +2,1212 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Modular IoT Game Suite</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>POCKET PARTY // IoT Handheld Arena</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700;800&family=Kanit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: monospace, sans-serif; background: #0f172a; color: #f8fafc; padding: 12px; }
-    .container { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
-    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; }
-    .btn { background: #2563eb; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-    .btn:hover { background: #1d4ed8; }
-    .btn-green { background: #16a34a; }
-    .btn-purple { background: #7c3aed; }
-    .btn-red { background: #dc2626; }
-    .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; background: #334155; }
-    .player-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .p-card { background: #0b0f19; border: 2px solid #334155; border-radius: 8px; padding: 10px; }
-    .p1-card { border-color: #38bdf8; }
-    .p2-card { border-color: #f43f5e; }
-    #game-stage { min-height: 220px; background: #020617; border: 2px dashed #475569; border-radius: 8px; padding: 16px; position: relative; }
-    #log-box { height: 130px; background: #020617; border: 1px solid #334155; border-radius: 6px; padding: 6px; overflow-y: auto; font-size: 11px; color: #38bdf8; }
+    :root {
+      --bg-outer: #16181d;
+      --console-body: #242730;
+      --card-cream: #f7f5f0;
+      --card-surface: #ffffff;
+      --ink-dark: #18191c;
+      --ink-muted: #646875;
+      --p1-blue: #00b8e6;
+      --p1-blue-dark: #008eb3;
+      --p1-blue-light: #e0f8fe;
+      --p2-red: #ff4554;
+      --p2-red-dark: #cc2936;
+      --p2-red-light: #ffe8ea;
+      --star-yellow: #ffd000;
+      --star-yellow-dark: #d4a800;
+      --luigi-green: #1ed760;
+      --luigi-green-dark: #149e44;
+      --border-thick: 3px solid #18191c;
+      --shadow-tactile: 0 4px 0 #18191c;
+      --shadow-tactile-sm: 0 3px 0 #18191c;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    body {
+      font-family: 'Kanit', sans-serif;
+      background-color: var(--bg-outer);
+      background-image: 
+        radial-gradient(#2d313d 1.5px, transparent 1.5px), 
+        radial-gradient(#2d313d 1.5px, var(--bg-outer) 1.5px);
+      background-size: 24px 24px;
+      background-position: 0 0, 12px 12px;
+      color: var(--ink-dark);
+      min-height: 100dvh;
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      overflow-x: hidden;
+    }
+
+    /* Handheld Mobile Shell */
+    .handheld-shell {
+      width: 100%;
+      max-width: 480px;
+      min-height: 100dvh;
+      background: var(--card-cream);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      border-left: 4px solid var(--ink-dark);
+      border-right: 4px solid var(--ink-dark);
+      box-shadow: 0 0 50px rgba(0,0,0,0.6);
+    }
+
+    /* Top Joy-Con Accent Bar */
+    .joycon-top-bar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      height: 8px;
+      border-bottom: 3px solid var(--ink-dark);
+    }
+    .joycon-top-bar .left-blue { background: var(--p1-blue); }
+    .joycon-top-bar .right-red { background: var(--p2-red); }
+
+    /* Header Bar */
+    .console-header {
+      background: var(--card-surface);
+      padding: 10px 14px;
+      border-bottom: var(--border-thick);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-block {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .dpad-logo {
+      width: 34px;
+      height: 34px;
+      background: var(--ink-dark);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: var(--star-yellow);
+      box-shadow: 0 2px 0 #000;
+      flex-shrink: 0;
+    }
+
+    .brand-title {
+      font-weight: 900;
+      font-size: 16px;
+      letter-spacing: -0.3px;
+      line-height: 1.05;
+      color: var(--ink-dark);
+    }
+
+    .brand-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--ink-muted);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 2px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      border: 1.5px solid var(--ink-dark);
+      display: inline-block;
+    }
+    .status-dot.online {
+      background: var(--luigi-green);
+      box-shadow: 0 0 6px var(--luigi-green);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Tactile Buttons */
+    .btn-tactile {
+      font-family: 'Kanit', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 7px 12px;
+      border-radius: 10px;
+      border: var(--border-thick);
+      background: var(--card-surface);
+      color: var(--ink-dark);
+      box-shadow: var(--shadow-tactile-sm);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s;
+    }
+    .btn-tactile:active:not(:disabled) {
+      transform: translateY(3px);
+      box-shadow: 0 0px 0 var(--ink-dark);
+    }
+    .btn-tactile:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+    .btn-blue { background: var(--p1-blue); color: #fff; }
+    .btn-red { background: var(--p2-red); color: #fff; }
+    .btn-yellow { background: var(--star-yellow); color: var(--ink-dark); }
+    .btn-green { background: var(--luigi-green); color: var(--ink-dark); }
+    .btn-dark { background: var(--ink-dark); color: #fff; }
+
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      border-radius: 10px;
+      position: relative;
+    }
+
+    /* Scoreboard Pill Row */
+    .scoreboard-strip {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 8px;
+      padding: 12px 14px 6px;
+      align-items: center;
+    }
+
+    .player-pill {
+      background: var(--card-surface);
+      border: var(--border-thick);
+      border-radius: 14px;
+      padding: 8px 10px;
+      box-shadow: var(--shadow-tactile-sm);
+      position: relative;
+      overflow: hidden;
+    }
+    .player-pill.p1 {
+      border-left: 8px solid var(--p1-blue);
+    }
+    .player-pill.p2 {
+      border-right: 8px solid var(--p2-red);
+      text-align: right;
+    }
+
+    .pill-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.3px;
+    }
+    .player-pill.p2 .pill-header {
+      flex-direction: row-reverse;
+    }
+
+    .hw-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: #e2e8f0;
+      color: var(--ink-dark);
+      border: 1.5px solid var(--ink-dark);
+    }
+
+    .score-display {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-top: 2px;
+    }
+    .player-pill.p2 .score-display {
+      justify-content: flex-end;
+    }
+    .score-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .score-unit {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--ink-muted);
+    }
+
+    .vs-badge {
+      background: var(--star-yellow);
+      border: var(--border-thick);
+      border-radius: 10px;
+      padding: 4px 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 800;
+      box-shadow: var(--shadow-tactile-sm);
+      text-align: center;
+    }
+
+    /* Main Cartridge Stage Area */
+    .arena-wrapper {
+      flex: 1;
+      padding: 8px 14px 14px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cartridge-frame {
+      flex: 1;
+      background: var(--card-surface);
+      border: var(--border-thick);
+      border-radius: 18px;
+      box-shadow: var(--shadow-tactile);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .cartridge-topbar {
+      background: var(--ink-dark);
+      color: #fff;
+      padding: 8px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: var(--border-thick);
+    }
+
+    .cartridge-title {
+      font-size: 14px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--star-yellow);
+    }
+
+    .state-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: #333846;
+      color: #fff;
+    }
+
+    #game-stage {
+      flex: 1;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      position: relative;
+      background-image: radial-gradient(#e5e7eb 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+
+    /* Quick Controller Footer */
+    .quick-footer {
+      padding: 0 14px 14px;
+      display: flex;
+      gap: 8px;
+    }
+    .quick-footer .btn-tactile {
+      flex: 1;
+      padding: 11px 12px;
+      font-size: 14px;
+    }
+
+    /* Slide-up System & Hardware Drawer */
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 17, 21, 0.7);
+      backdrop-filter: blur(2px);
+      z-index: 90;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    .drawer-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .system-drawer {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translate(-50%, 105%);
+      width: 100%;
+      max-width: 480px;
+      max-height: 85dvh;
+      background: var(--card-cream);
+      border-top: 4px solid var(--ink-dark);
+      border-left: 4px solid var(--ink-dark);
+      border-right: 4px solid var(--ink-dark);
+      border-radius: 22px 22px 0 0;
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+    .system-drawer.open {
+      transform: translate(-50%, 0);
+    }
+
+    .drawer-header {
+      background: var(--ink-dark);
+      color: #fff;
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .drawer-body {
+      padding: 14px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .hw-box {
+      background: var(--card-surface);
+      border: var(--border-thick);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: var(--shadow-tactile-sm);
+    }
+
+    #log-box {
+      height: 120px;
+      background: #121316;
+      color: #4ade80;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 8px;
+      border-radius: 8px;
+      border: 2px solid var(--ink-dark);
+      overflow-y: auto;
+      line-height: 1.45;
+    }
+
+    /* Animations */
+    @keyframes popIn {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes shakeScreen {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    .shake-anim {
+      animation: shakeScreen 0.35s ease;
+    }
   </style>
 </head>
 <body>
 
-<div class="container">
-  <!-- Status Bar -->
-  <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
-    <div>
-      <h3>🕹️ IoT Multi-Game Arena</h3>
-      <span style="font-size: 12px; color: #94a3b8;">Room: <b>thai99</b> | State: <b id="lbl-state" style="color:#facc15;">LOBBY</b></span>
-    </div>
-    <div>
-      <span id="lbl-broker" class="badge" style="background:#991b1b;">MQTT: Offline</span>
-      <span id="lbl-myrole" class="badge" style="background:#0284c7;">Role: รอจับคู่</span>
-    </div>
+<div class="handheld-shell">
+  <!-- Joy-Con Color Strip -->
+  <div class="joycon-top-bar">
+    <div class="left-blue"></div>
+    <div class="right-red"></div>
   </div>
 
-  <!-- Lobby & Control -->
-  <div class="card">
-    <div style="display:flex; gap: 8px; flex-wrap: wrap; align-items:center;">
-      <button class="btn" onclick="sendWhoIsHere()">📡 ค้นหาบอร์ด</button>
-      <button class="btn btn-green" onclick="autoPairRoles()">⚖️ จับคู่ P1 / P2</button>
-      <button id="btn-start" class="btn btn-purple" onclick="requestStartGame()" disabled>🚀 เริ่มเล่นเกม (P1 สั่ง)</button>
-      <button class="btn" style="background:#475569;" onclick="toggleBot()">🤖 เปิด/ปิด Bot P2 จำลอง</button>
-      <span style="font-size:12px; margin-left:auto;">บอร์ดที่พบ: <b id="lbl-devices" style="color:#38bdf8;">-</b></span>
-    </div>
-  </div>
-
-  <!-- Players Status & Score -->
-  <div class="player-row">
-    <div class="p-card p1-card">
-      <div style="display:flex; justify-content:space-between;">
-        <b style="color:#38bdf8;">PLAYER 1 (Host)</b>
-        <span id="p1-id" class="badge">Unassigned</span>
+  <!-- Console Top Header -->
+  <header class="console-header">
+    <div class="brand-block">
+      <div class="dpad-logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M9 3h6v6h6v6h-6v6H9v-6H3V9h6V3z"/>
+        </svg>
       </div>
-      <div style="font-size: 20px; font-weight: bold; margin-top: 6px;">คะแนนสะสม: <span id="p1-total-score">0</span></div>
-    </div>
-    <div class="p-card p2-card">
-      <div style="display:flex; justify-content:space-between;">
-        <b style="color:#f43f5e;">PLAYER 2 (Client)</b>
-        <span id="p2-id" class="badge">Unassigned</span>
-      </div>
-      <div style="font-size: 20px; font-weight: bold; margin-top: 6px;">คะแนนสะสม: <span id="p2-total-score">0</span></div>
-    </div>
-  </div>
-
-  <!-- Arena Container สำหรับบรรจุแต่ละเกม -->
-  <div class="card">
-    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-      <h4 id="arena-title">🎮 Game Arena</h4>
-      <span id="arena-status" class="badge">รอเริ่มเกม...</span>
-    </div>
-    <div id="game-stage">
-      <div style="text-align:center; padding-top:60px; color:#64748b;">
-        กด "ค้นหาบอร์ด" -> "จับคู่ P1/P2" -> จากนั้นกด "เริ่มเล่นเกม"
+      <div>
+        <div class="brand-title">POCKET PARTY IoT</div>
+        <div class="brand-sub">
+          <span id="mqtt-dot" class="status-dot"></span>
+          <span id="lbl-broker">MQTT: OFFLINE</span>
+          <span>•</span>
+          <span>RM:<b>thai99</b></span>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Live Packet & System Log -->
-  <div class="card">
-    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-      <b>📋 Event & MQTT Packet Log</b>
-      <button style="background:none; border:none; color:#64748b; cursor:pointer;" onclick="clearLog()">ล้าง Log</button>
+    <div class="header-actions">
+      <span id="lbl-myrole" class="hw-tag" style="padding:4px 8px; font-weight:800; background:#fef08a;">รอจับคู่</span>
+      <button class="btn-tactile icon-btn btn-yellow" onclick="toggleDrawer('sys-drawer')" title="ตั้งค่าบอร์ด & ระบบ">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+      </button>
     </div>
-    <div id="log-box"></div>
+  </header>
+
+  <!-- Joy-Con Player Cards -->
+  <section class="scoreboard-strip">
+    <!-- Player 1 (Blue Joy-Con) -->
+    <div class="player-pill p1">
+      <div class="pill-header">
+        <span style="color:var(--p1-blue-dark);">P1 • HOST</span>
+        <span id="p1-id" class="hw-tag">NONE</span>
+      </div>
+      <div class="score-display">
+        <span id="p1-total-score" class="score-num">0</span>
+        <span class="score-unit">PTS</span>
+      </div>
+    </div>
+
+    <!-- Center Round / State -->
+    <div class="vs-badge">
+      <div style="font-size:9px; color:#52525b;">STAGE</div>
+      <div id="lbl-round-badge">LOBBY</div>
+    </div>
+
+    <!-- Player 2 (Red Joy-Con) -->
+    <div class="player-pill p2">
+      <div class="pill-header">
+        <span style="color:var(--p2-red-dark);">P2 • CLIENT</span>
+        <span id="p2-id" class="hw-tag">NONE</span>
+      </div>
+      <div class="score-display">
+        <span id="p2-total-score" class="score-num">0</span>
+        <span class="score-unit">PTS</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Handheld Screen Cartridge -->
+  <main class="arena-wrapper">
+    <div class="cartridge-frame">
+      <div class="cartridge-topbar">
+        <div id="arena-title" class="cartridge-title">
+          <span>SELECT & PAIR BOARDS</span>
+        </div>
+        <span id="lbl-state" class="state-pill">LOBBY</span>
+      </div>
+
+      <!-- Dynamic Game Stage -->
+      <div id="game-stage">
+        <div style="text-align:center; padding: 16px 8px;">
+          <div style="display:inline-flex; gap:10px; margin-bottom:14px;">
+            <div style="width:48px; height:84px; background:var(--p1-blue); border:var(--border-thick); border-radius:24px 8px 8px 24px; box-shadow:var(--shadow-tactile-sm); display:flex; flex-direction:column; justify-content:space-around; align-items:center; padding:10px 0;">
+              <div style="width:14px; height:14px; background:var(--ink-dark); border-radius:50%;"></div>
+              <div style="width:18px; height:18px; background:var(--ink-dark); border-radius:4px;"></div>
+            </div>
+            <div style="width:48px; height:84px; background:var(--p2-red); border:var(--border-thick); border-radius:8px 24px 24px 8px; box-shadow:var(--shadow-tactile-sm); display:flex; flex-direction:column; justify-content:space-around; align-items:center; padding:10px 0;">
+              <div style="width:18px; height:18px; background:var(--ink-dark); border-radius:50%;"></div>
+              <div style="width:14px; height:14px; background:var(--ink-dark); border-radius:50%;"></div>
+            </div>
+          </div>
+
+          <h2 style="font-size:20px; font-weight:900; margin-bottom:6px;">พร้อมเริ่มปาร์ตี้หรือยัง?</h2>
+          <p style="font-size:13px; color:var(--ink-muted); max-width:280px; margin:0 auto 16px;">
+            เชื่อมต่อบอร์ด Arduino ทั้ง 2 เครื่องเข้ากับห้อง <b>thai99</b> แล้วกดปุ่มด้านล่างเพื่อจับคู่และเริ่มเกม!
+          </p>
+
+          <div style="display:inline-flex; align-items:center; gap:6px; background:#f1f5f9; border:2px solid var(--ink-dark); border-radius:8px; padding:6px 12px; font-family:'JetBrains Mono', monospace; font-size:11px;">
+            <span>บอร์ดที่พบ:</span>
+            <b id="lbl-devices-inline" style="color:var(--p1-blue-dark);">ยังไม่มีบอร์ด</b>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bottom Quick Action Bar -->
+  <footer class="quick-footer">
+    <button class="btn-tactile" onclick="sendWhoIsHere()">
+      📡 สแกนบอร์ด
+    </button>
+    <button class="btn-tactile btn-yellow" onclick="autoPairRoles()">
+      ⚖️ จับคู่ P1/P2
+    </button>
+    <button id="btn-start" class="btn-tactile btn-green" onclick="requestStartGame()" disabled>
+      🚀 เริ่มเกม!
+    </button>
+  </footer>
+</div>
+
+<!-- Backdrop -->
+<div id="drawer-backdrop" class="drawer-backdrop" onclick="closeAllDrawers()"></div>
+
+<!-- System & Hardware Drawer (ซ่อน Log และการตั้งค่าฮาร์ดแวร์) -->
+<div id="sys-drawer" class="system-drawer">
+  <div class="drawer-header">
+    <div style="font-weight:800; font-size:14px; display:flex; align-items:center; gap:8px;">
+      <span>🔧 HARDWARE & MQTT CONSOLE</span>
+    </div>
+    <button class="btn-tactile btn-red" style="padding:3px 10px; font-size:12px;" onclick="closeAllDrawers()">ปิด</button>
+  </div>
+  <div class="drawer-body">
+    <!-- Status message banner -->
+    <div id="sys-toast" style="display:none; background:var(--star-yellow); border:2px solid var(--ink-dark); border-radius:8px; padding:8px 10px; font-size:12px; font-weight:700;"></div>
+
+    <div class="hw-box">
+      <div style="font-size:12px; font-weight:800; margin-bottom:8px; display:flex; justify-content:space-between;">
+        <span>📡 อุปกรณ์ Arduino ในระบบ (Room: thai99)</span>
+        <span id="lbl-devices" style="font-family:'JetBrains Mono', monospace; color:var(--p1-blue-dark);">-</span>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+        <button class="btn-tactile btn-blue" onclick="sendWhoIsHere()">ค้นหาบอร์ด (PING)</button>
+        <button class="btn-tactile btn-yellow" onclick="autoPairRoles()">จับคู่ P1 / P2 อัตโนมัติ</button>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:6px;">
+        <button class="btn-tactile" style="flex:1; font-size:11px;" onclick="setMyRole(1)">ตั้งจอนี้เป็น P1 (Host)</button>
+        <button class="btn-tactile" style="flex:1; font-size:11px;" onclick="setMyRole(2)">ตั้งจอนี้เป็น P2 (Client)</button>
+      </div>
+    </div>
+
+    <!-- MQTT Log Box (Hidden from main screen) -->
+    <div class="hw-box">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <span style="font-size:12px; font-weight:800;">📋 MQTT Packet Stream</span>
+        <button class="btn-tactile" style="padding:2px 8px; font-size:10px;" onclick="clearLog()">ล้าง Log</button>
+      </div>
+      <div id="log-box"></div>
+    </div>
   </div>
 </div>
 
-<!-- โหลดโมดูลเกมแยกแต่ละไฟล์ -->
-<script src="games/game-run.js"></script>
-<script src="games/game-balloon.js"></script>
-<script src="games/game-safe.js"></script>
+<!-- ======================================================== -->
+<!-- โมดูลเกมทั้ง 3 ด่าน                                      -->
+<!-- ======================================================== -->
 
+<script id="script-game-run">
+/**
+ * Game 1: Red Light, Green Light (ไฟเขียว ไฟแดง)
+ * กติกา: ปัดมือวิ่งตอนไฟเขียว หากปัดมือตอนไฟแดงจะโดนหักก้าวถอยหลัง!
+ */
+const GameRun = {
+  id: "RUN_RACE",
+  title: "🚦 ไฟเขียว ไฟแดง (Red Light, Green Light)",
+  arduinoMode: "RUN",
+
+  targetSteps: 30,
+  p1Steps: 0,
+  p2Steps: 0,
+  callbacks: null,
+  isEnded: false,
+  isGreenLight: true,
+  trafficTimer: null,
+
+  init(containerEl, config) {
+    this.p1Steps = 0;
+    this.p2Steps = 0;
+    this.isEnded = false;
+    this.isGreenLight = true;
+    this.callbacks = config;
+
+    containerEl.innerHTML = `
+      <div id="run-arena-wrap" style="display:flex; flex-direction:column; gap:14px;">
+        <!-- Tactile Traffic Light Housing -->
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div style="background:#18191c; border:3px solid #18191c; border-radius:40px; padding:6px 14px; display:inline-flex; align-items:center; gap:12px; box-shadow:0 4px 0 rgba(0,0,0,0.25);">
+            <div id="light-lens-red" style="width:26px; height:26px; border-radius:50%; background:#451a1c; border:2px solid #000; transition:all 0.15s;"></div>
+            <div id="light-lens-green" style="width:26px; height:26px; border-radius:50%; background:#1ed760; box-shadow:0 0 14px #1ed760; border:2px solid #000; transition:all 0.15s;"></div>
+            <span id="traffic-label" style="font-weight:900; font-size:15px; color:#1ed760; letter-spacing:0.5px; min-width:115px; text-align:center;">
+              RUN! วิ่งได้!
+            </span>
+          </div>
+        </div>
+
+        <!-- Race Track Lanes -->
+        <div style="background:#242730; border:3px solid #18191c; border-radius:14px; padding:12px; display:flex; flex-direction:column; gap:14px; position:relative; overflow:hidden;">
+          
+          <!-- Finish Checkered Strip -->
+          <div style="position:absolute; right:10px; top:0; bottom:0; width:12px; background:repeating-linear-gradient(0deg, #fff, #fff 6px, #18191c 6px, #18191c 12px); border-left:2px solid #18191c; border-right:2px solid #18191c; opacity:0.85;"></div>
+
+          <!-- Lane 1: Player 1 -->
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding-right:26px;">
+              <span style="color:#00b8e6; font-weight:800; font-size:13px;">P1 RUNNER</span>
+              <span id="run-p1-penalty" style="background:#ff4554; color:#fff; font-size:10px; font-weight:800; padding:1px 6px; border-radius:4px; display:none;">⚠️ ฟาวล์ -2 ก้าว!</span>
+              <span style="font-family:'JetBrains Mono', monospace; color:#fff; font-size:12px; font-weight:800;"><span id="run-p1-val">0</span>/${this.targetSteps}</span>
+            </div>
+            <div style="background:#16181d; height:34px; border-radius:10px; border:2px solid #000; position:relative; display:flex; align-items:center; padding:0 6px; margin-right:22px;">
+              <div style="position:absolute; left:8px; right:8px; height:2px; border-top:2px dashed #3f4454;"></div>
+              <div id="run-p1-bar" style="background:linear-gradient(90deg, rgba(0,184,230,0.25), rgba(0,184,230,0.7)); height:100%; width:0%; border-radius:8px; transition:width 0.15s;"></div>
+              <div id="run-p1-avatar" style="position:absolute; left:0%; transform:translateX(-4px); width:28px; height:28px; background:#00b8e6; border:2.5px solid #18191c; border-radius:8px; display:grid; place-items:center; font-weight:900; font-size:11px; color:#fff; box-shadow:0 2px 0 #000; transition:left 0.15s;">P1</div>
+            </div>
+          </div>
+
+          <!-- Lane 2: Player 2 -->
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; padding-right:26px;">
+              <span style="color:#ff4554; font-weight:800; font-size:13px;">P2 RUNNER</span>
+              <span id="run-p2-penalty" style="background:#ff4554; color:#fff; font-size:10px; font-weight:800; padding:1px 6px; border-radius:4px; display:none;">⚠️ ฟาวล์ -2 ก้าว!</span>
+              <span style="font-family:'JetBrains Mono', monospace; color:#fff; font-size:12px; font-weight:800;"><span id="run-p2-val">0</span>/${this.targetSteps}</span>
+            </div>
+            <div style="background:#16181d; height:34px; border-radius:10px; border:2px solid #000; position:relative; display:flex; align-items:center; padding:0 6px; margin-right:22px;">
+              <div style="position:absolute; left:8px; right:8px; height:2px; border-top:2px dashed #3f4454;"></div>
+              <div id="run-p2-bar" style="background:linear-gradient(90deg, rgba(255,69,84,0.25), rgba(255,69,84,0.7)); height:100%; width:0%; border-radius:8px; transition:width 0.15s;"></div>
+              <div id="run-p2-avatar" style="position:absolute; left:0%; transform:translateX(-4px); width:28px; height:28px; background:#ff4554; border:2.5px solid #18191c; border-radius:8px; display:grid; place-items:center; font-weight:900; font-size:11px; color:#fff; box-shadow:0 2px 0 #000; transition:left 0.15s;">P2</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align:center; font-size:11px; color:#646875; font-weight:600;">
+          👋 ปัดมือหน้าเซนเซอร์ตอน <b>ไฟเขียว</b> | ห้ามขยับตอน <b>ไฟแดง</b>!
+        </div>
+      </div>
+    `;
+
+    this.startTrafficCycle();
+  },
+
+  startTrafficCycle() {
+    const nextInterval = this.isGreenLight 
+      ? Math.floor(Math.random() * 2000) + 2000
+      : Math.floor(Math.random() * 1500) + 1500;
+
+    this.trafficTimer = setTimeout(() => {
+      if (this.isEnded) return;
+      this.isGreenLight = !this.isGreenLight;
+      this.updateTrafficUI();
+      this.startTrafficCycle();
+    }, nextInterval);
+  },
+
+  updateTrafficUI() {
+    const redLens = document.getElementById("light-lens-red");
+    const greenLens = document.getElementById("light-lens-green");
+    const label = document.getElementById("traffic-label");
+    if (!label) return;
+
+    if (this.isGreenLight) {
+      redLens.style.background = "#451a1c";
+      redLens.style.boxShadow = "none";
+      greenLens.style.background = "#1ed760";
+      greenLens.style.boxShadow = "0 0 14px #1ed760";
+      label.textContent = "RUN! วิ่งได้!";
+      label.style.color = "#1ed760";
+    } else {
+      greenLens.style.background = "#143821";
+      greenLens.style.boxShadow = "none";
+      redLens.style.background = "#ff4554";
+      redLens.style.boxShadow = "0 0 14px #ff4554";
+      label.textContent = "STOP! หยุด!";
+      label.style.color = "#ff4554";
+    }
+  },
+
+  handlePacket(role, data) {
+    if (this.isEnded || data.type !== "STEP") return;
+
+    if (this.isGreenLight) {
+      if (role === 1) {
+        this.p1Steps = Math.min(this.targetSteps, this.p1Steps + 1);
+        this.updateProgress(1, this.p1Steps);
+        if (this.p1Steps >= this.targetSteps) this.finishGame(1);
+      } else if (role === 2) {
+        this.p2Steps = Math.min(this.targetSteps, this.p2Steps + 1);
+        this.updateProgress(2, this.p2Steps);
+        if (this.p2Steps >= this.targetSteps) this.finishGame(2);
+      }
+    } else {
+      this.applyPenalty(role);
+    }
+  },
+
+  applyPenalty(role) {
+    const penaltySteps = 2;
+    const prefix = role === 1 ? 'p1' : 'p2';
+    const penaltyNotice = document.getElementById(`run-${prefix}-penalty`);
+    const wrap = document.getElementById("run-arena-wrap");
+
+    if (role === 1) {
+      this.p1Steps = Math.max(0, this.p1Steps - penaltySteps);
+      this.updateProgress(1, this.p1Steps);
+    } else {
+      this.p2Steps = Math.max(0, this.p2Steps - penaltySteps);
+      this.updateProgress(2, this.p2Steps);
+    }
+
+    if (wrap) {
+      wrap.classList.remove("shake-anim");
+      void wrap.offsetWidth;
+      wrap.classList.add("shake-anim");
+    }
+
+    if (penaltyNotice) {
+      penaltyNotice.style.display = "inline-block";
+      setTimeout(() => { penaltyNotice.style.display = "none"; }, 850);
+    }
+  },
+
+  updateProgress(role, steps) {
+    const pct = Math.min(100, Math.round((steps / this.targetSteps) * 100));
+    const prefix = role === 1 ? 'p1' : 'p2';
+    const valEl = document.getElementById(`run-${prefix}-val`);
+    const barEl = document.getElementById(`run-${prefix}-bar`);
+    const avatarEl = document.getElementById(`run-${prefix}-avatar`);
+    if (valEl) valEl.textContent = steps;
+    if (barEl) barEl.style.width = `${pct}%`;
+    if (avatarEl) avatarEl.style.left = `calc(${pct}% - 12px)`;
+  },
+
+  finishGame(winnerRole) {
+    this.isEnded = true;
+    if (this.trafficTimer) clearTimeout(this.trafficTimer);
+    if (this.callbacks && this.callbacks.onRoundFinish) {
+      this.callbacks.onRoundFinish(winnerRole, {
+        p1: winnerRole === 1 ? 10 : 0,
+        p2: winnerRole === 2 ? 10 : 0
+      });
+    }
+  },
+
+  destroy() {
+    this.isEnded = true;
+    if (this.trafficTimer) clearTimeout(this.trafficTimer);
+  }
+};
+</script>
+
+<script id="script-game-balloon">
+/**
+ * Game 2: Balloon Pump (จดจำขนาด + ระบบรีเซ็ตลมและระเบิด)
+ */
+const GameBalloon = {
+  id: "BALLOON_PUMP",
+  title: "🎈 ปั๊มลูกโป่งให้เท่าตัวอย่าง",
+  arduinoMode: "BALLOON",
+
+  targetAir: 0,
+  maxAir: 115,
+  p1Air: 0,
+  p2Air: 0,
+  p1Locked: false,
+  p2Locked: false,
+  isEnded: false,
+  callbacks: null,
+  previewTimer: null,
+
+  init(containerEl, config) {
+    this.targetAir = Math.floor(Math.random() * 45) + 40;
+    this.p1Air = 0;
+    this.p2Air = 0;
+    this.p1Locked = false;
+    this.p2Locked = false;
+    this.isEnded = false;
+    this.callbacks = config;
+
+    const targetSize = 46 + (this.targetAir * 0.9);
+
+    containerEl.innerHTML = `
+      <div style="text-align:center; margin-bottom:10px;">
+        <div id="target-wrapper" style="background:#fffbeb; border:2.5px solid #18191c; border-radius:12px; padding:8px; box-shadow:0 3px 0 #18191c;">
+          <div style="font-size:12px; color:#b45309; font-weight:800;">
+            ⏱️ จดจำขนาดตัวอย่างใน <span id="target-countdown" style="background:#18191c; color:#ffd000; padding:1px 6px; border-radius:4px;">3</span> วินาที!
+          </div>
+          <div style="height:125px; display:flex; align-items:center; justify-content:center;">
+            <div id="balloon-target" style="width:${targetSize}px; height:${targetSize}px; background:radial-gradient(circle at 32% 30%, #fff, #ffd000 55%, #d97706); border-radius:50% 50% 48% 48%; border:3px solid #18191c; box-shadow:0 4px 0 rgba(0,0,0,0.2);"></div>
+          </div>
+        </div>
+        <div id="target-hidden-msg" style="display:none; background:#18191c; color:#ffd000; padding:6px 10px; border-radius:8px; font-size:12px; font-weight:700;">
+          🙈 ซ่อนตัวอย่างแล้ว! ปั๊มให้ใกล้เคียงที่สุด (เกินขีดจำกัด = แตก 💥)
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; text-align:center;">
+        <!-- P1 Balloon Chamber -->
+        <div style="background:#f8fafc; padding:10px 8px; border-radius:14px; border:3px solid #18191c; box-shadow:0 3px 0 #18191c; display:flex; flex-direction:column; justify-content:space-between;">
+          <div style="font-size:12px; font-weight:900; color:#008eb3;">P1 CHAMBER</div>
+          <div style="height:145px; display:flex; align-items:center; justify-content:center; position:relative;">
+            <div id="balloon-p1" style="width:46px; height:46px; background:radial-gradient(circle at 30% 30%, #a5f3fc, #00b8e6 60%, #0284c7); border-radius:50%; border:2.5px solid #18191c; transition:all 0.12s;"></div>
+          </div>
+          <div id="p1-status" style="font-size:11px; font-weight:700; color:#646875; margin-bottom:6px;">กำลังปั๊มลม...</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
+            <button id="btn-p1-reset" class="btn-tactile" style="padding:5px; font-size:10px;">💨 รีเซ็ต (*)</button>
+            <button id="btn-p1-lock" class="btn-tactile btn-blue" style="padding:5px; font-size:10px;">🔒 ล็อค (#)</button>
+          </div>
+        </div>
+
+        <!-- P2 Balloon Chamber -->
+        <div style="background:#f8fafc; padding:10px 8px; border-radius:14px; border:3px solid #18191c; box-shadow:0 3px 0 #18191c; display:flex; flex-direction:column; justify-content:space-between;">
+          <div style="font-size:12px; font-weight:900; color:#cc2936;">P2 CHAMBER</div>
+          <div style="height:145px; display:flex; align-items:center; justify-content:center; position:relative;">
+            <div id="balloon-p2" style="width:46px; height:46px; background:radial-gradient(circle at 30% 30%, #fecdd3, #ff4554 60%, #e11d48); border-radius:50%; border:2.5px solid #18191c; transition:all 0.12s;"></div>
+          </div>
+          <div id="p2-status" style="font-size:11px; font-weight:700; color:#646875; margin-bottom:6px;">กำลังปั๊มลม...</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
+            <button id="btn-p2-reset" class="btn-tactile" style="padding:5px; font-size:10px;">💨 รีเซ็ต (*)</button>
+            <button id="btn-p2-lock" class="btn-tactile btn-red" style="padding:5px; font-size:10px;">🔒 ล็อค (#)</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("btn-p1-reset")?.addEventListener("click", () => this.resetBalloon(1));
+    document.getElementById("btn-p2-reset")?.addEventListener("click", () => this.resetBalloon(2));
+    document.getElementById("btn-p1-lock")?.addEventListener("click", () => this.lockBalloon(1));
+    document.getElementById("btn-p2-lock")?.addEventListener("click", () => this.lockBalloon(2));
+
+    let timeLeft = 3;
+    this.previewTimer = setInterval(() => {
+      timeLeft--;
+      const countEl = document.getElementById("target-countdown");
+      if (countEl) countEl.textContent = timeLeft;
+
+      if (timeLeft <= 0) {
+        clearInterval(this.previewTimer);
+        const targetEl = document.getElementById("target-wrapper");
+        const hiddenMsg = document.getElementById("target-hidden-msg");
+        if (targetEl) targetEl.style.display = "none";
+        if (hiddenMsg) hiddenMsg.style.display = "block";
+      }
+    }, 1000);
+  },
+
+  handlePacket(role, data) {
+    if (this.isEnded) return;
+
+    if (data.type === "PUMP") {
+      const addedAir = Math.max(1, Math.round(data.depth * 0.25));
+      if (role === 1 && !this.p1Locked) {
+        this.p1Air += addedAir;
+        this.renderBalloon(1, this.p1Air);
+      } else if (role === 2 && !this.p2Locked) {
+        this.p2Air += addedAir;
+        this.renderBalloon(2, this.p2Air);
+      }
+    }
+    else if (data.type === "RESET" || data.type === "DEFLATE" || (data.type === "KEY" && data.key === "*")) {
+      this.resetBalloon(role);
+    }
+    else if (data.type === "CONFIRM" || (data.type === "KEY" && data.key === "#")) {
+      this.lockBalloon(role);
+    }
+  },
+
+  resetBalloon(role) {
+    if (this.isEnded) return;
+
+    if (role === 1) {
+      this.p1Air = 0;
+      this.p1Locked = false;
+      const status = document.getElementById("p1-status");
+      if (status) {
+        status.textContent = "ปล่อยลมแล้ว เริ่มใหม่!";
+        status.style.color = "#646875";
+      }
+      this.renderBalloon(1, 0);
+    } else if (role === 2) {
+      this.p2Air = 0;
+      this.p2Locked = false;
+      const status = document.getElementById("p2-status");
+      if (status) {
+        status.textContent = "ปล่อยลมแล้ว เริ่มใหม่!";
+        status.style.color = "#646875";
+      }
+      this.renderBalloon(2, 0);
+    }
+  },
+
+  lockBalloon(role) {
+    if (this.isEnded) return;
+
+    if (role === 1) {
+      this.p1Locked = true;
+      const status = document.getElementById("p1-status");
+      if (status) {
+        status.textContent = "🔒 ล็อคขนาดแล้ว!";
+        status.style.color = "#008eb3";
+      }
+    } else if (role === 2) {
+      this.p2Locked = true;
+      const status = document.getElementById("p2-status");
+      if (status) {
+        status.textContent = "🔒 ล็อคขนาดแล้ว!";
+        status.style.color = "#cc2936";
+      }
+    }
+
+    if (this.p1Locked && this.p2Locked) {
+      this.evaluateWinner();
+    }
+  },
+
+  renderBalloon(role, air) {
+    const prefix = role === 1 ? 'p1' : 'p2';
+    const el = document.getElementById(`balloon-${prefix}`);
+    const status = document.getElementById(`p${role}-status`);
+    if (!el) return;
+
+    if (air > this.maxAir) {
+      el.style.background = "transparent";
+      el.style.border = "3px dashed #ff4554";
+      el.style.width = "80px";
+      el.style.height = "80px";
+
+      if (status) {
+        status.textContent = "💥 ลูกโป่งแตก!";
+        status.style.color = "#ff4554";
+      }
+
+      if (role === 2) {
+        this.finishGame(1);
+      } else {
+        this.finishGame(2);
+      }
+      return;
+    }
+
+    const size = 46 + (air * 0.9);
+    el.style.width = `${size}px`;
+    el.style.height = `${size}px`;
+    el.style.border = "2.5px solid #18191c";
+    el.style.background = role === 1
+      ? "radial-gradient(circle at 30% 30%, #a5f3fc, #00b8e6 60%, #0284c7)"
+      : "radial-gradient(circle at 30% 30%, #fecdd3, #ff4554 60%, #e11d48)";
+  },
+
+  evaluateWinner() {
+    const p1Diff = Math.abs(this.p1Air - this.targetAir);
+    const p2Diff = Math.abs(this.p2Air - this.targetAir);
+
+    const hiddenMsg = document.getElementById("target-hidden-msg");
+    if (hiddenMsg) {
+      hiddenMsg.innerHTML = `🎯 เฉลย! P1 คลาดเคลื่อน ${p1Diff} | P2 คลาดเคลื่อน ${p2Diff}`;
+    }
+    const targetEl = document.getElementById("target-wrapper");
+    if (targetEl) targetEl.style.display = "block";
+
+    if (p1Diff < p2Diff) {
+      this.finishGame(1);
+    } else if (p2Diff < p1Diff) {
+      this.finishGame(2);
+    } else {
+      this.finishGame(0);
+    }
+  },
+
+  finishGame(winnerRole) {
+    if (this.isEnded) return;
+    this.isEnded = true;
+    if (this.previewTimer) clearInterval(this.previewTimer);
+
+    if (this.callbacks && this.callbacks.onRoundFinish) {
+      this.callbacks.onRoundFinish(winnerRole, {
+        p1: winnerRole === 1 ? 10 : 0,
+        p2: winnerRole === 2 ? 10 : 0
+      });
+    }
+  },
+
+  destroy() {
+    this.isEnded = true;
+    if (this.previewTimer) clearInterval(this.previewTimer);
+  }
+};
+</script>
+
+<script id="script-game-safe">
+/**
+ * Game 3: Safe Cracker (ปลดรหัสเซฟ 3 ชั้น)
+ * กติกา: หมุน Potentiometer ทีละ Step 5 แล้วกด '#' ปลดล็อคให้ครบ 3 ชั้น
+ */
+const GameSafe = {
+  id: "SAFE_CRACKER",
+  title: "🔐 ถอดรหัสตู้เซฟ 3 ชั้น",
+  arduinoMode: "SAFE",
+
+  targets: [0, 0, 0],
+  p1Stage: 0,
+  p2Stage: 0,
+  p1CurrentVal: 0,
+  p2CurrentVal: 0,
+  isEnded: false,
+  callbacks: null,
+
+  snapTo5(val) {
+    return Math.round(val / 5) * 5;
+  },
+
+  randomStep5() {
+    return (Math.floor(Math.random() * 17) + 2) * 5;
+  },
+
+  init(containerEl, config) {
+    this.targets = [this.randomStep5(), this.randomStep5(), this.randomStep5()];
+    this.p1Stage = 0;
+    this.p2Stage = 0;
+    this.p1CurrentVal = 0;
+    this.p2CurrentVal = 0;
+    this.isEnded = false;
+    this.callbacks = config;
+
+    containerEl.innerHTML = `
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <!-- P1 Safe Dial Vault -->
+        <div style="background:#f8fafc; padding:10px; border-radius:14px; border:3px solid #18191c; box-shadow:0 3px 0 #18191c; text-align:center;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-weight:900; font-size:12px; color:#008eb3;">P1 VAULT</span>
+            <span style="font-family:'JetBrains Mono', monospace; font-size:11px; font-weight:800; background:#e0f8fe; padding:1px 6px; border-radius:4px; border:1.5px solid #18191c;">ชั้น <span id="safe-p1-stage">1</span>/3</span>
+          </div>
+
+          <!-- Rotary Knob Visual -->
+          <div style="position:relative; width:96px; height:96px; margin:8px auto; border-radius:50%; background:#18191c; border:3px solid #00b8e6; display:grid; place-items:center; box-shadow:0 4px 0 rgba(0,0,0,0.25);">
+            <div id="safe-p1-dial" style="position:absolute; inset:6px; border-radius:50%; border:2px dashed #64748b; transition:transform 0.15s ease;">
+              <div style="width:6px; height:12px; background:#00b8e6; margin:0 auto; border-radius:3px;"></div>
+            </div>
+            <div style="font-family:'JetBrains Mono', monospace; font-size:22px; font-weight:800; color:#fff; z-index:2;" id="safe-p1-val">0</div>
+          </div>
+
+          <div id="safe-p1-hint" style="background:#fffbeb; border:2px solid #18191c; border-radius:8px; padding:4px; font-size:12px; font-weight:700; color:#b45309; min-height:32px; display:grid; place-items:center; margin-bottom:6px;">
+            รหัสชั้นแรก: <b>${this.targets[0]}</b>
+          </div>
+
+          <div style="height:8px; background:#e2e8f0; border-radius:4px; border:1.5px solid #18191c; overflow:hidden; margin-bottom:6px;">
+            <div id="safe-p1-bar" style="height:100%; width:0%; background:#00b8e6; transition:width 0.1s;"></div>
+          </div>
+          <div id="safe-p1-status" style="font-size:11px; font-weight:700; color:#646875;">หมุนให้ตรงแล้วกด #</div>
+        </div>
+
+        <!-- P2 Safe Dial Vault -->
+        <div style="background:#f8fafc; padding:10px; border-radius:14px; border:3px solid #18191c; box-shadow:0 3px 0 #18191c; text-align:center;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-weight:900; font-size:12px; color:#cc2936;">P2 VAULT</span>
+            <span style="font-family:'JetBrains Mono', monospace; font-size:11px; font-weight:800; background:#ffe8ea; padding:1px 6px; border-radius:4px; border:1.5px solid #18191c;">ชั้น <span id="safe-p2-stage">1</span>/3</span>
+          </div>
+
+          <!-- Rotary Knob Visual -->
+          <div style="position:relative; width:96px; height:96px; margin:8px auto; border-radius:50%; background:#18191c; border:3px solid #ff4554; display:grid; place-items:center; box-shadow:0 4px 0 rgba(0,0,0,0.25);">
+            <div id="safe-p2-dial" style="position:absolute; inset:6px; border-radius:50%; border:2px dashed #64748b; transition:transform 0.15s ease;">
+              <div style="width:6px; height:12px; background:#ff4554; margin:0 auto; border-radius:3px;"></div>
+            </div>
+            <div style="font-family:'JetBrains Mono', monospace; font-size:22px; font-weight:800; color:#fff; z-index:2;" id="safe-p2-val">0</div>
+          </div>
+
+          <div id="safe-p2-hint" style="background:#fffbeb; border:2px solid #18191c; border-radius:8px; padding:4px; font-size:12px; font-weight:700; color:#b45309; min-height:32px; display:grid; place-items:center; margin-bottom:6px;">
+            รหัสชั้นแรก: <b>${this.targets[0]}</b>
+          </div>
+
+          <div style="height:8px; background:#e2e8f0; border-radius:4px; border:1.5px solid #18191c; overflow:hidden; margin-bottom:6px;">
+            <div id="safe-p2-bar" style="height:100%; width:0%; background:#ff4554; transition:width 0.1s;"></div>
+          </div>
+          <div id="safe-p2-status" style="font-size:11px; font-weight:700; color:#646875;">หมุนให้ตรงแล้วกด #</div>
+        </div>
+      </div>
+
+      <div style="text-align:center; margin-top:10px; font-size:11px; color:#646875; font-weight:600;">
+        🎛️ หมุนทีละ Step 5 | ชั้น 2-3 จะใบ้เฉพาะ <b>"ระยะห่าง"</b> แล้วกด <b>#</b>
+      </div>
+    `;
+  },
+
+  handlePacket(role, data) {
+    if (this.isEnded) return;
+
+    if (data.type === "POT") {
+      const snappedVal = this.snapTo5(data.val);
+      if (role === 1) this.p1CurrentVal = snappedVal;
+      else this.p2CurrentVal = snappedVal;
+
+      this.updatePlayerUI(role);
+    }
+    else if (data.type === "KEY" && data.key === "#") {
+      const stage = role === 1 ? this.p1Stage : this.p2Stage;
+      const currentVal = role === 1 ? this.p1CurrentVal : this.p2CurrentVal;
+      const targetVal = this.targets[stage];
+
+      if (currentVal === targetVal) {
+        if (role === 1) this.p1Stage++;
+        else this.p2Stage++;
+
+        const newStage = role === 1 ? this.p1Stage : this.p2Stage;
+        if (newStage >= 3) {
+          this.finishGame(role);
+        } else {
+          this.updatePlayerUI(role);
+        }
+      }
+    }
+  },
+
+  updatePlayerUI(role) {
+    const prefix = role === 1 ? 'p1' : 'p2';
+    const stage = role === 1 ? this.p1Stage : this.p2Stage;
+    const currentVal = role === 1 ? this.p1CurrentVal : this.p2CurrentVal;
+    const targetVal = this.targets[stage];
+
+    const stageEl = document.getElementById(`safe-${prefix}-stage`);
+    const valEl = document.getElementById(`safe-${prefix}-val`);
+    const barEl = document.getElementById(`safe-${prefix}-bar`);
+    const dialEl = document.getElementById(`safe-${prefix}-dial`);
+    const hintEl = document.getElementById(`safe-${prefix}-hint`);
+    const statusEl = document.getElementById(`safe-${prefix}-status`);
+
+    if (stageEl) stageEl.textContent = stage + 1;
+    if (valEl) valEl.textContent = currentVal;
+    if (barEl) barEl.style.width = `${currentVal}%`;
+    if (dialEl) dialEl.style.transform = `rotate(${(currentVal / 100) * 300 - 150}deg)`;
+
+    if (hintEl) {
+      if (stage === 0) {
+        hintEl.innerHTML = `รหัสชั้นแรก: <b>${targetVal}</b>`;
+      } else {
+        const diff = Math.abs(currentVal - targetVal);
+        hintEl.innerHTML = `📡 ห่างจากรหัสอยู่ <b>${diff}</b>`;
+      }
+    }
+
+    if (statusEl) {
+      if (currentVal === targetVal) {
+        statusEl.textContent = "🟢 ตรงเป๊ะ! กด # ปลดล็อค!";
+        statusEl.style.color = "#149e44";
+      } else {
+        statusEl.textContent = "หมุนหาค่าแล้วกด #";
+        statusEl.style.color = "#646875";
+      }
+    }
+  },
+
+  finishGame(winnerRole) {
+    this.isEnded = true;
+    if (this.callbacks && this.callbacks.onRoundFinish) {
+      this.callbacks.onRoundFinish(winnerRole, {
+        p1: winnerRole === 1 ? 10 : 0,
+        p2: winnerRole === 2 ? 10 : 0
+      });
+    }
+  },
+
+  destroy() {
+    this.isEnded = true;
+  }
+};
+</script>
+
+<!-- ======================================================== -->
+<!-- ระบบหลัก (Network, Lifecycle & Handheld UI Controller)   -->
+<!-- ======================================================== -->
 <script>
-  // ========================================================
-  // 1. การตั้งค่าระบบเครือข่าย & ตัวแปรกลาง
-  // ========================================================
   const ROOM_CODE = "thai99";
   const TOPIC_STREAM = `game/${ROOM_CODE}/stream`;
   const TOPIC_CMD    = `game/${ROOM_CODE}/cmd`;
@@ -111,25 +1219,21 @@
   let knownDevices = new Set();
   let totalScores = { p1: 0, p2: 0 };
 
-  let systemState = "LOBBY"; // LOBBY, COUNTDOWN, PLAYING, ROUND_OVER, MATCH_END
+  let systemState = "LOBBY";
   let currentRoundIndex = 0;
   let activeGameInstance = null;
 
-  // ลำดับเกมที่จะเล่นตามลำดับ
   const GAME_PLAYLIST = [GameRun, GameBalloon, GameSafe];
 
-  // ========================================================
-  // 2. ระบบ MQTT & State Synchronization
-  // ========================================================
+  // Connect to EMQX Broker
   const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
 
   client.on('connect', () => {
-    document.getElementById('lbl-broker').textContent = "MQTT: Online";
-    document.getElementById('lbl-broker').style.background = "#166534";
-    sysLog("Connected to MQTT Broker.", "#4ade80");
+    document.getElementById('lbl-broker').textContent = "MQTT: ONLINE";
+    document.getElementById('mqtt-dot').classList.add('online');
+    sysLog("Connected to MQTT Broker (wss://broker.emqx.io).", "#4ade80");
 
     client.subscribe([TOPIC_STREAM, TOPIC_CMD, TOPIC_SYNC]);
-    // ถามหา State ทันที เผื่อว่าเป็นการรีเฟรชหน้าเว็บขณะเล่น
     client.publish(TOPIC_SYNC, JSON.stringify({ type: "ASK_STATE", from: myClientId }));
     sendWhoIsHere();
   });
@@ -137,32 +1241,23 @@
   client.on('message', (topic, payload) => {
     try {
       const msg = JSON.parse(payload.toString());
-
-      // --- จัดการแพ็กเก็ต SYNC (กู้คืนสถานะข้ามหน้าเว็บ) ---
       if (topic === TOPIC_SYNC) {
         handleSyncPacket(msg);
         return;
       }
-
-      // --- จัดการแพ็กเก็ต CMD (คำสั่งระบบ / ลำดับเกม) ---
       if (topic === TOPIC_CMD) {
         handleCommandPacket(msg);
         return;
       }
-
-      // --- จัดการแพ็กเก็ต STREAM (ข้อมูลเซนเซอร์จากบอร์ด) ---
       if (topic === TOPIC_STREAM) {
         handleStreamPacket(msg);
       }
-    } catch (e) {
-      // อาจมี string เปล่า หรือ text อื่นๆ
-    }
+    } catch (e) {}
   });
 
   function handleSyncPacket(msg) {
-    // 1. มีคนอื่นในห้องถามหา State ล่าสุด -> ถ้าเราเป็น P1 ให้รายงานกลับ
     if (msg.type === "ASK_STATE" && myRole === 1 && msg.from !== myClientId) {
-      sysLog(`Web ${msg.from} asked for state. Reporting...`, "#eab308");
+      sysLog(`Peer ${msg.from} asked state. Reporting...`, "#ffd000");
       client.publish(TOPIC_SYNC, JSON.stringify({
         type: "STATE_REPORT",
         to: msg.from,
@@ -172,27 +1267,26 @@
         roundIndex: currentRoundIndex
       }));
     }
-    // 2. ตัวเราเพิ่งรีเฟรช แล้วได้รับรายงาน State จาก P1
     else if (msg.type === "STATE_REPORT" && msg.to === myClientId) {
-      sysLog("State recovered from Peer Host!", "#4ade80");
+      sysLog("State synced from P1 Host!", "#4ade80");
       assignedRoles = msg.roles;
       totalScores = msg.scores;
       currentRoundIndex = msg.roundIndex;
       updateLobbyUI();
+      updateScoresUI();
 
-      if (assignedRoles.p2 && assignedRoles.p2.includes("D")) {
-        // กำหนด Role ของตัวเราตามที่กู้มาได้
+      if (assignedRoles.p2) {
         setMyRole(2);
       }
 
-      // ถ้าหลุดเข้ามาตอนที่เกมกำลังเล่นอยู่ ให้เข้าสู่สถานะ Spectator
       if (msg.state === "PLAYING") {
         systemState = "PLAYING";
-        document.getElementById('lbl-state').textContent = "SPECTATING";
+        document.getElementById('lbl-state').textContent = "SPECTATE";
         document.getElementById('game-stage').innerHTML = `
-          <div style="text-align:center; padding:40px; color:#facc15;">
-            <h3>👁️ กำลังอยู่ในโหมดสังเกตการณ์ (Spectator)</h3>
-            <p>คุณเชื่อมต่อเข้ามาใหม่ระหว่างรอบ จะสามารถร่วมเล่นได้ในด่านถัดไป</p>
+          <div style="text-align:center; padding:30px 12px;">
+            <div style="font-size:36px; margin-bottom:8px;">👀</div>
+            <h3 style="font-weight:900; margin-bottom:4px;">โหมดสังเกตการณ์ (Spectator)</h3>
+            <p style="font-size:12px; color:var(--ink-muted);">คุณเชื่อมต่อเข้ามาใหม่ระหว่างรอบ จะร่วมเล่นได้ในด่านถัดไป</p>
           </div>
         `;
       }
@@ -204,15 +1298,18 @@
       assignedRoles.p1 = msg.p1;
       assignedRoles.p2 = msg.p2;
       updateLobbyUI();
-
-      // เช็คว่าหน้าเว็บเราเชื่อมกับบอร์ดตัวไหน (กรณีรันคู่กับบอทหรือบอร์ดจริง)
-      if (assignedRoles.p1 && !assignedRoles.p1.includes("BOT")) setMyRole(1);
+      if (myRole === 0 && assignedRoles.p1) {
+        setMyRole(1);
+      }
     }
     else if (msg.type === "START_COUNTDOWN") {
       startSyncCountdown(msg.roundIndex);
     }
     else if (msg.type === "ROUND_RESULT") {
       handleRoundResult(msg);
+    }
+    else if (msg.type === "MATCH_END") {
+      showMatchSummary(msg.scores);
     }
   }
 
@@ -224,9 +1321,7 @@
       }
     }
 
-    // ส่งต่อข้อมูลเซนเซอร์ให้เฉพาะโมดูลเกมปัจจุบันที่กำลังเล่นอยู่
     if (systemState === "PLAYING" && activeGameInstance && activeGameInstance.handlePacket) {
-      // ระบุว่าแพ็กเก็ตนี้มาจาก P1 หรือ P2
       let senderRole = 0;
       if (data.id === assignedRoles.p1) senderRole = 1;
       else if (data.id === assignedRoles.p2) senderRole = 2;
@@ -237,16 +1332,16 @@
     }
   }
 
-  // ========================================================
-  // 3. ระบบควบคุมการเปลี่ยนด่าน (Game Lifecycle Manager)
-  // ========================================================
+  // Game Lifecycle
   function requestStartGame() {
-    if (myRole !== 1) return alert("เฉพาะ Player 1 (Host) เท่านั้นที่สั่งเริ่มเกมได้");
+    if (myRole !== 1) {
+      showToast("เฉพาะ Player 1 (Host) เท่านั้นที่กดเริ่มเกมได้");
+      return;
+    }
     currentRoundIndex = 0;
     totalScores = { p1: 0, p2: 0 };
     updateScoresUI();
 
-    // ส่งสัญญาณให้ทุกเครื่องนับถอยหลังพร้อมกัน
     client.publish(TOPIC_CMD, JSON.stringify({
       type: "START_COUNTDOWN",
       roundIndex: currentRoundIndex
@@ -255,28 +1350,42 @@
 
   function startSyncCountdown(roundIdx) {
     systemState = "COUNTDOWN";
-    document.getElementById('lbl-state').textContent = "COUNTDOWN";
+    document.getElementById('lbl-state').textContent = "READY...";
+    document.getElementById('lbl-round-badge').textContent = `R-${roundIdx + 1}/3`;
     currentRoundIndex = roundIdx;
 
     const gameClass = GAME_PLAYLIST[roundIdx];
-    document.getElementById('arena-title').textContent = `ด่านที่ ${roundIdx + 1}: ${gameClass.title}`;
-    
-    // สั่งเปลี่ยนโหมดบนบอร์ด Arduino ให้พร้อมสำหรับเกมนี้
+    document.getElementById('arena-title').textContent = `STAGE ${roundIdx + 1}: ${gameClass.title}`;
+
     sendBoardCmd({ type: "MODE", mode: gameClass.arduinoMode });
     sendBoardCmd({ type: "LCD", id: "ALL", l1: "ROUND " + (roundIdx + 1), l2: "PREPARE..." });
 
     let count = 3;
     const stage = document.getElementById('game-stage');
-    stage.innerHTML = `<h1 style="text-align:center; font-size:60px; color:#facc15; padding-top:40px;">${count}</h1>`;
+    stage.innerHTML = `
+      <div style="text-align:center;">
+        <div style="font-size:12px; font-weight:800; color:var(--ink-muted); margin-bottom:6px;">เตรียมตัวให้พร้อม!</div>
+        <div style="display:inline-grid; place-items:center; width:96px; height:96px; background:var(--star-yellow); border:4px solid var(--ink-dark); border-radius:24px; box-shadow:var(--shadow-tactile); font-family:'JetBrains Mono', monospace; font-size:52px; font-weight:800;">${count}</div>
+      </div>
+    `;
 
     const timer = setInterval(() => {
       count--;
       if (count > 0) {
-        stage.innerHTML = `<h1 style="text-align:center; font-size:60px; color:#facc15; padding-top:40px;">${count}</h1>`;
+        stage.innerHTML = `
+          <div style="text-align:center;">
+            <div style="font-size:12px; font-weight:800; color:var(--ink-muted); margin-bottom:6px;">เตรียมตัวให้พร้อม!</div>
+            <div style="display:inline-grid; place-items:center; width:96px; height:96px; background:var(--star-yellow); border:4px solid var(--ink-dark); border-radius:24px; box-shadow:var(--shadow-tactile); font-family:'JetBrains Mono', monospace; font-size:52px; font-weight:800;">${count}</div>
+          </div>
+        `;
       } else {
         clearInterval(timer);
-        stage.innerHTML = `<h1 style="text-align:center; font-size:60px; color:#4ade80; padding-top:40px;">START!</h1>`;
-        setTimeout(() => launchRound(gameClass), 400);
+        stage.innerHTML = `
+          <div style="text-align:center;">
+            <div style="display:inline-block; padding:14px 28px; background:var(--luigi-green); border:4px solid var(--ink-dark); border-radius:20px; box-shadow:var(--shadow-tactile); font-size:36px; font-weight:900;">START!</div>
+          </div>
+        `;
+        setTimeout(() => launchRound(gameClass), 450);
       }
     }, 1000);
   }
@@ -286,19 +1395,16 @@
     document.getElementById('lbl-state').textContent = "PLAYING";
     sendBoardCmd({ type: "LCD", id: "ALL", l1: "GO GO GO!", l2: gameClass.arduinoMode });
 
-    // ทำลายเกมเดิมทิ้งถ้ามี
     if (activeGameInstance && activeGameInstance.destroy) {
       activeGameInstance.destroy();
     }
 
-    // เริ่มต้นเกมใหม่
     activeGameInstance = gameClass;
     activeGameInstance.init(document.getElementById('game-stage'), {
       myRole: myRole,
       assignedRoles: assignedRoles,
-      // ฟังก์ชัน Callback เมื่อเล่นจบ ส่งมาให้ระบบกลาง
       onRoundFinish: (winnerRole, scores) => {
-        if (myRole === 1) { // มีเฉพาะ Host เท่านั้นที่ส่งสรุปผล
+        if (myRole === 1) {
           client.publish(TOPIC_CMD, JSON.stringify({
             type: "ROUND_RESULT",
             winner: winnerRole,
@@ -308,38 +1414,41 @@
         }
       }
     });
-
-    // แจ้งเตือนบอทให้เริ่มทำงานตามเกมนี้
-    if (botActive) BotRunner.startForGame(gameClass.arduinoMode);
   }
 
   function handleRoundResult(result) {
     systemState = "ROUND_OVER";
-    document.getElementById('lbl-state').textContent = "ROUND OVER";
+    document.getElementById('lbl-state').textContent = "RESULT";
 
     if (activeGameInstance && activeGameInstance.destroy) {
       activeGameInstance.destroy();
     }
-    if (botActive) BotRunner.stop();
 
     totalScores.p1 += (result.scores.p1 || 0);
     totalScores.p2 += (result.scores.p2 || 0);
     updateScoresUI();
 
-    const winnerText = result.winner === 1 ? "🏆 Player 1 ชนะรอบนี้!" :
-                       result.winner === 2 ? "🏆 Player 2 ชนะรอบนี้!" : "🤝 เสมอกันในรอบนี้!";
+    const winnerBanner = result.winner === 1 ? "🏆 PLAYER 1 ชนะด่านนี้!" :
+                         result.winner === 2 ? "🏆 PLAYER 2 ชนะด่านนี้!" : "🤝 เสมอกันในด่านนี้!";
+    const bannerColor = result.winner === 1 ? "var(--p1-blue)" :
+                        result.winner === 2 ? "var(--p2-red)" : "var(--star-yellow)";
 
     sendBoardCmd({ type: "LCD", id: "ALL", l1: "ROUND OVER", l2: "WIN: P" + result.winner });
 
     document.getElementById('game-stage').innerHTML = `
-      <div style="text-align:center; padding:30px;">
-        <h2 style="color:#4ade80; margin-bottom:8px;">${winnerText}</h2>
-        <p style="color:#94a3b8;">คะแนนรอบนี้: P1 [${result.scores.p1}] vs P2 [${result.scores.p2}]</p>
-        <div style="margin-top:20px; color:#facc15;">กำลังเตรียมตัวเข้าด่านถัดไปใน 4 วินาที...</div>
+      <div style="text-align:center; padding:20px 10px;">
+        <div style="display:inline-block; background:${bannerColor}; color:${result.winner === 0 ? '#18191c' : '#fff'}; border:3px solid #18191c; border-radius:14px; padding:10px 18px; font-size:18px; font-weight:900; box-shadow:0 4px 0 #18191c; margin-bottom:12px;">
+          ${winnerBanner}
+        </div>
+        <div style="font-size:13px; font-weight:700; color:var(--ink-muted);">
+          คะแนนที่ได้: P1 [+${result.scores.p1}] vs P2 [+${result.scores.p2}]
+        </div>
+        <div style="margin-top:16px; font-size:12px; font-weight:800; color:#b45309; background:#fffbeb; display:inline-block; padding:4px 12px; border-radius:20px; border:2px solid #18191c;">
+          ⏳ กำลังเข้าสู่ด่านถัดไปใน 4 วินาที...
+        </div>
       </div>
     `;
 
-    // ถ้าเป็น Host (P1) จะเป็นคนควบคุมลำดับเพื่อเริ่มด่านต่อไป
     if (myRole === 1) {
       setTimeout(() => {
         if (currentRoundIndex + 1 < GAME_PLAYLIST.length) {
@@ -348,59 +1457,84 @@
             roundIndex: currentRoundIndex + 1
           }));
         } else {
-          // จบการแข่งขันทุกด่าน
           client.publish(TOPIC_CMD, JSON.stringify({
             type: "MATCH_END",
             scores: totalScores
           }));
-          document.getElementById('game-stage').innerHTML = `
-            <div style="text-align:center; padding:30px;">
-              <h1 style="color:#facc15;">🏁 จบการแข่งขันทุกด่าน!</h1>
-              <p style="font-size:18px; margin-top:10px;">คะแนนรวมสุดท้าย: P1 [${totalScores.p1}] - P2 [${totalScores.p2}]</p>
-              <button class="btn btn-purple" style="margin-top:14px;" onclick="requestStartGame()">เริ่มแข่งใหม่อีกครั้ง</button>
-            </div>
-          `;
+          showMatchSummary(totalScores);
         }
       }, 4000);
     }
   }
 
-  // ========================================================
-  // 4. ฟังก์ชันช่วยเหลือและ UI
-  // ========================================================
+  function showMatchSummary(scores) {
+    systemState = "MATCH_END";
+    document.getElementById('lbl-state').textContent = "FINISHED";
+    document.getElementById('lbl-round-badge').textContent = "FINAL";
+
+    const champion = scores.p1 > scores.p2 ? "👑 PLAYER 1 เป็นแชมป์ปาร์ตี้!" :
+                     scores.p2 > scores.p1 ? "👑 PLAYER 2 เป็นแชมป์ปาร์ตี้!" : "🤝 คะแนนรวมเสมอกัน!";
+
+    document.getElementById('game-stage').innerHTML = `
+      <div style="text-align:center; padding:16px 10px;">
+        <div style="font-size:40px; margin-bottom:4px;">🎉</div>
+        <h2 style="font-size:20px; font-weight:900; margin-bottom:8px;">${champion}</h2>
+        <div style="font-family:'JetBrains Mono', monospace; font-size:16px; font-weight:800; background:#f1f5f9; border:2.5px solid #18191c; border-radius:10px; padding:8px 14px; display:inline-block; margin-bottom:16px;">
+          P1 [${scores.p1}] — P2 [${scores.p2}]
+        </div>
+        <div>
+          <button class="btn-tactile btn-green" onclick="requestStartGame()">🔄 เล่นใหม่อีกครั้ง</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // UI & Pairing Helpers
   function sendBoardCmd(obj) { client.publish(TOPIC_CMD, JSON.stringify(obj)); }
-  function sendWhoIsHere() { client.publish(TOPIC_CMD, "WHO_IS_HERE"); sysLog("TX -> WHO_IS_HERE"); }
+  function sendWhoIsHere() {
+    client.publish(TOPIC_CMD, "WHO_IS_HERE");
+    sysLog("TX -> WHO_IS_HERE");
+    showToast("ส่งสัญญาณค้นหาบอร์ดแล้ว...");
+  }
 
   function setMyRole(role) {
     myRole = role;
     const badge = document.getElementById('lbl-myrole');
-    badge.textContent = `Role: P${role} (${role === 1 ? 'Host' : 'Client'})`;
-    badge.style.background = role === 1 ? '#0284c7' : '#e11d48';
+    badge.textContent = `P${role} (${role === 1 ? 'HOST' : 'CLIENT'})`;
+    badge.style.background = role === 1 ? 'var(--p1-blue)' : 'var(--p2-red)';
+    badge.style.color = '#fff';
     document.getElementById('btn-start').disabled = (role !== 1);
   }
 
   function updateDeviceList() {
-    document.getElementById('lbl-devices').textContent = Array.from(knownDevices).join(", ");
+    const txt = Array.from(knownDevices).join(", ") || "ยังไม่มีบอร์ด";
+    document.getElementById('lbl-devices').textContent = txt;
+    const inlineEl = document.getElementById('lbl-devices-inline');
+    if (inlineEl) inlineEl.textContent = txt;
   }
 
   function autoPairRoles() {
     const list = Array.from(knownDevices);
-    if (!list.length) return alert("ยังไม่พบบอร์ด Arduino");
-    list.sort(); // เรียงตัวอักษรแบบ Deterministic
+    if (!list.length) {
+      showToast("ยังไม่พบบอร์ด Arduino! กรุณากด 'สแกนบอร์ด' ก่อน");
+      return;
+    }
+    list.sort();
 
     assignedRoles.p1 = list[0];
-    assignedRoles.p2 = list[1] || "D_BOT";
+    assignedRoles.p2 = list[1] || "WAITING_P2";
 
     sendBoardCmd({ type: "ROLE", p1: assignedRoles.p1, p2: assignedRoles.p2 });
-    setMyRole(1); // จอนี้กดจับคู่ ให้เป็น P1 Host
+    setMyRole(1);
     updateLobbyUI();
     sysLog(`Paired: P1=${assignedRoles.p1}, P2=${assignedRoles.p2}`, "#4ade80");
+    showToast(`จับคู่สำเร็จ! P1=${assignedRoles.p1} / P2=${assignedRoles.p2}`);
   }
 
   function updateLobbyUI() {
-    document.getElementById('p1-id').textContent = assignedRoles.p1 || "Unassigned";
-    document.getElementById('p2-id').textContent = assignedRoles.p2 || "Unassigned";
-    document.getElementById('btn-start').disabled = !(myRole === 1 && assignedRoles.p1 && assignedRoles.p2);
+    document.getElementById('p1-id').textContent = assignedRoles.p1 || "NONE";
+    document.getElementById('p2-id').textContent = assignedRoles.p2 || "NONE";
+    document.getElementById('btn-start').disabled = !(myRole === 1 && assignedRoles.p1);
   }
 
   function updateScoresUI() {
@@ -416,57 +1550,33 @@
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
   }
+
   function clearLog() { document.getElementById('log-box').innerHTML = ""; }
 
-  // ========================================================
-  // 5. Bot Simulator (บอทจำลองสำหรับทดสอบ P2 อัตโนมัติ)
-  // ========================================================
-  let botActive = false;
-  const botId = "D_BOT";
+  function showToast(text) {
+    const toast = document.getElementById('sys-toast');
+    if (!toast) return;
+    toast.textContent = text;
+    toast.style.display = "block";
+    setTimeout(() => { toast.style.display = "none"; }, 2800);
+  }
 
-  function toggleBot() {
-    botActive = !botActive;
-    if (botActive) {
-      knownDevices.add(botId);
-      updateDeviceList();
-      client.publish(TOPIC_STREAM, JSON.stringify({ type: "PING", id: botId }));
-      sysLog("🤖 Bot P2 Active (ID: D_BOT)", "#c084fc");
-    } else {
-      BotRunner.stop();
-      knownDevices.delete(botId);
-      updateDeviceList();
-      sysLog("🤖 Bot P2 Disabled", "#94a3b8");
+  // Drawers Controller
+  function toggleDrawer(id) {
+    const drawer = document.getElementById(id);
+    const backdrop = document.getElementById('drawer-backdrop');
+    const isOpen = drawer.classList.contains('open');
+    closeAllDrawers();
+    if (!isOpen) {
+      drawer.classList.add('open');
+      backdrop.classList.add('open');
     }
   }
 
-  const BotRunner = {
-    interval: null,
-    startForGame(mode) {
-      this.stop();
-      if (mode === "RUN") {
-        // บอทสุ่มปัดมือนับก้าว ทุกๆ 250 - 450 ms
-        this.interval = setInterval(() => {
-          client.publish(TOPIC_STREAM, JSON.stringify({ type: "STEP", id: botId }));
-        }, Math.floor(Math.random() * 200) + 250);
-      } else if (mode === "BALLOON") {
-        // บอทสุ่มปั๊มลูกโป่ง
-        this.interval = setInterval(() => {
-          const depth = Math.floor(Math.random() * 20) + 15;
-          client.publish(TOPIC_STREAM, JSON.stringify({ type: "PUMP", id: botId, depth: depth }));
-        }, 600);
-      } else if (mode === "SAFE") {
-        // บอทสุ่มหมุน Potentiometer
-        let val = 10;
-        this.interval = setInterval(() => {
-          val = (val + 12) % 100;
-          client.publish(TOPIC_STREAM, JSON.stringify({ type: "POT", id: botId, val: val }));
-        }, 500);
-      }
-    },
-    stop() {
-      if (this.interval) clearInterval(this.interval);
-    }
-  };
+  function closeAllDrawers() {
+    document.querySelectorAll('.system-drawer').forEach(d => d.classList.remove('open'));
+    document.getElementById('drawer-backdrop').classList.remove('open');
+  }
 </script>
 </body>
 </html>
