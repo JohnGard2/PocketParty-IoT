@@ -42,6 +42,9 @@
 [ Controller 2: UNO R4 ] ──(Wi-Fi / MQTT)──────────────────────┘
   (Keypad, Ultrasonic, Potentiometer, LCD)
 ```
+# YouTube
+[https://duckduckgo.com](https://youtu.be/PdKdqAweQaw)
+
 # Poster
 
 ![Poster](./Poster/pic.png)
