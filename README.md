@@ -43,3 +43,5 @@
                                            │       (WebSocket / WSS)          (GitHub Pages Host)
 [ Controller 2: UNO R4 ] ──(Wi-Fi / MQTT)──┘
   (Keypad, Ultrasonic)
+```
+###Poster
