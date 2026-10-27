@@ -36,11 +36,11 @@
 ### สถาปัตยกรรมระบบ (System Architecture)
 
 ```text
-[ Controller 1: UNO R4 ] ──(Wi-Fi / MQTT)──┐
-  (Keypad, Ultrasonic)               ├──► [ Public MQTT Broker ] ──► [ Smartphone Web Browser ]
-                                           │       (WebSocket / WSS)          (GitHub Pages Host)
-[ Controller 2: UNO R4 ] ──(Wi-Fi / MQTT)──┘
-  (Keypad, Ultrasonic)
+[ Controller 1: UNO R4 ] ──(Wi-Fi / MQTT)──────────────────────┐
+  (Keypad, Ultrasonic, Potentiometer, LCD)                     ├──► [ Public MQTT Broker ] ──► [ Smartphone Web Browser ]
+                                                               │       (WebSocket / WSS)          (GitHub Pages Host)
+[ Controller 2: UNO R4 ] ──(Wi-Fi / MQTT)──────────────────────┘
+  (Keypad, Ultrasonic, Potentiometer, LCD)
 ```
 # Poster
 
