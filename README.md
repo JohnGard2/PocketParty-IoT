@@ -43,7 +43,7 @@
   (Keypad, Ultrasonic, Potentiometer, LCD)
 ```
 # YouTube
-[https://duckduckgo.com](https://youtu.be/PdKdqAweQaw)
+[คลิปเต็ม Pocket Party iot 68070047 68070060](https://youtu.be/PdKdqAweQaw)
 
 # Poster
 
