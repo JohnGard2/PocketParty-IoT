@@ -3,310 +3,470 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Hardware Party Games</title>
+  <title>Modular IoT Game Suite</title>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: monospace, sans-serif;
-      background: #0b0f19;
-      color: #e2e8f0;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    /* ตารางคะแนนรวม */
-    .party-header {
-      width: 100%;
-      max-width: 480px;
-      background: #1e293b;
-      border: 2px solid #334155;
-      padding: 12px;
-      border-radius: 8px;
-      margin-bottom: 12px;
-    }
-    .score-row {
-      display: flex;
-      justify-content: space-around;
-      font-size: 18px;
-      font-weight: bold;
-      margin-top: 6px;
-    }
-    .p1-color { color: #38bdf8; }
-    .p2-color { color: #f43f5e; }
-
-    /* พื้นที่เล่นเกม */
-    #arena {
-      width: 100%;
-      max-width: 480px;
-      background: #020617;
-      border: 2px solid #475569;
-      border-radius: 8px;
-      padding: 16px;
-      text-align: center;
-      min-height: 380px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    /* การแสดงผลลูกโป่ง */
-    .balloon-stage {
-      display: flex;
-      justify-content: space-around;
-      align-items: flex-end;
-      width: 100%;
-      height: 220px;
-      margin: 15px 0;
-    }
-    .balloon-slot {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      width: 45%;
-      height: 100%;
-    }
-    .balloon {
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      color: #000;
-      transition: width 0.1s, height 0.1s;
-    }
-    .balloon-target { background: #facc15; }
-    .balloon-p1 { background: #38bdf8; }
-    .balloon-p2 { background: #f43f5e; }
-
-    /* ปุ่มควบคุม */
-    button {
-      background: #2563eb;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: bold;
-      font-family: inherit;
-    }
-    button:disabled { background: #475569; }
-
-    /* กล่อง Debug รับข้อมูลจาก Hardware */
-    #debug-box {
-      width: 100%;
-      max-width: 480px;
-      margin-top: 12px;
-      background: #111;
-      color: #4ade80;
-      padding: 8px;
-      font-size: 12px;
-      height: 90px;
-      overflow-y: auto;
-      border-radius: 6px;
-    }
+    body { font-family: monospace, sans-serif; background: #0f172a; color: #f8fafc; padding: 12px; }
+    .container { max-width: 900px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 12px; }
+    .btn { background: #2563eb; color: #fff; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .btn:hover { background: #1d4ed8; }
+    .btn-green { background: #16a34a; }
+    .btn-purple { background: #7c3aed; }
+    .btn-red { background: #dc2626; }
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; background: #334155; }
+    .player-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .p-card { background: #0b0f19; border: 2px solid #334155; border-radius: 8px; padding: 10px; }
+    .p1-card { border-color: #38bdf8; }
+    .p2-card { border-color: #f43f5e; }
+    #game-stage { min-height: 220px; background: #020617; border: 2px dashed #475569; border-radius: 8px; padding: 16px; position: relative; }
+    #log-box { height: 130px; background: #020617; border: 1px solid #334155; border-radius: 6px; padding: 6px; overflow-y: auto; font-size: 11px; color: #38bdf8; }
   </style>
 </head>
 <body>
 
-  <!-- คะแนนรวมของทั้งปาร์ตี้ -->
-  <div class="party-header">
-    <div style="text-align:center; font-weight:bold;">🏆 TOTAL PARTY SCORE</div>
-    <div class="score-row">
-      <div class="p1-color">P1: <span id="total-p1">0</span> ดาว</div>
-      <div class="p2-color">P2: <span id="total-p2">0</span> ดาว</div>
+<div class="container">
+  <!-- Status Bar -->
+  <div class="card" style="display:flex; justify-content:space-between; align-items:center;">
+    <div>
+      <h3>🕹️ IoT Multi-Game Arena</h3>
+      <span style="font-size: 12px; color: #94a3b8;">Room: <b>thai99</b> | State: <b id="lbl-state" style="color:#facc15;">LOBBY</b></span>
+    </div>
+    <div>
+      <span id="lbl-broker" class="badge" style="background:#991b1b;">MQTT: Offline</span>
+      <span id="lbl-myrole" class="badge" style="background:#0284c7;">Role: รอจับคู่</span>
     </div>
   </div>
 
-  <!-- โหมดมินิเกม: Balloon Memory Pump -->
-  <div id="arena">
-    <div id="game-title" style="font-weight: bold; color: #facc15;">MINI-GAME 1: BALLOON MEMORY PUMP</div>
-    <div id="instruction" style="font-size: 13px; color: #94a3b8;">กดปุ่มเริ่มรอบเพื่อจำขนาดเป้าหมาย</div>
-
-    <div class="balloon-stage">
-      <!-- ฝั่ง P1 -->
-      <div class="balloon-slot">
-        <div id="balloon-p1" class="balloon balloon-p1" style="width: 30px; height: 30px;">0%</div>
-        <span class="p1-color" style="margin-top:8px;">P1 (ปั๊มเอง)</span>
-        <span id="p1-status" style="font-size: 12px; color: #94a3b8;">รอส่งค่า...</span>
-      </div>
-
-      <!-- เป้าหมายตรงกลาง (จะหายไปหลังหมดเวลา) -->
-      <div class="balloon-slot" id="target-slot">
-        <div id="balloon-target" class="balloon balloon-target" style="width: 30px; height: 30px;">?</div>
-        <span style="color: #facc15; margin-top:8px;">TARGET</span>
-      </div>
-
-      <!-- ฝั่ง P2 -->
-      <div class="balloon-slot">
-        <div id="balloon-p2" class="balloon balloon-p2" style="width: 30px; height: 30px;">0%</div>
-        <span class="p2-color" style="margin-top:8px;">P2 (ปั๊มเอง)</span>
-        <span id="p2-status" style="font-size: 12px; color: #94a3b8;">รอส่งค่า...</span>
-      </div>
+  <!-- Lobby & Control -->
+  <div class="card">
+    <div style="display:flex; gap: 8px; flex-wrap: wrap; align-items:center;">
+      <button class="btn" onclick="sendWhoIsHere()">📡 ค้นหาบอร์ด</button>
+      <button class="btn btn-green" onclick="autoPairRoles()">⚖️ จับคู่ P1 / P2</button>
+      <button id="btn-start" class="btn btn-purple" onclick="requestStartGame()" disabled>🚀 เริ่มเล่นเกม (P1 สั่ง)</button>
+      <button class="btn" style="background:#475569;" onclick="toggleBot()">🤖 เปิด/ปิด Bot P2 จำลอง</button>
+      <span style="font-size:12px; margin-left:auto;">บอร์ดที่พบ: <b id="lbl-devices" style="color:#38bdf8;">-</b></span>
     </div>
-
-    <div id="result-text" style="font-weight: bold; min-height: 24px;"></div>
-    <button id="start-btn" onclick="startRound()">เริ่มรอบใหม่ (3s จำขนาด)</button>
   </div>
 
-  <div id="debug-box">--- MQTT Hardware Logs ---<br></div>
+  <!-- Players Status & Score -->
+  <div class="player-row">
+    <div class="p-card p1-card">
+      <div style="display:flex; justify-content:space-between;">
+        <b style="color:#38bdf8;">PLAYER 1 (Host)</b>
+        <span id="p1-id" class="badge">Unassigned</span>
+      </div>
+      <div style="font-size: 20px; font-weight: bold; margin-top: 6px;">คะแนนสะสม: <span id="p1-total-score">0</span></div>
+    </div>
+    <div class="p-card p2-card">
+      <div style="display:flex; justify-content:space-between;">
+        <b style="color:#f43f5e;">PLAYER 2 (Client)</b>
+        <span id="p2-id" class="badge">Unassigned</span>
+      </div>
+      <div style="font-size: 20px; font-weight: bold; margin-top: 6px;">คะแนนสะสม: <span id="p2-total-score">0</span></div>
+    </div>
+  </div>
 
-  <script>
-    function log(msg) {
-      const box = document.getElementById('debug-box');
-      box.innerHTML += `> ${msg}<br>`;
-      box.scrollTop = box.scrollHeight;
+  <!-- Arena Container สำหรับบรรจุแต่ละเกม -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+      <h4 id="arena-title">🎮 Game Arena</h4>
+      <span id="arena-status" class="badge">รอเริ่มเกม...</span>
+    </div>
+    <div id="game-stage">
+      <div style="text-align:center; padding-top:60px; color:#64748b;">
+        กด "ค้นหาบอร์ด" -> "จับคู่ P1/P2" -> จากนั้นกด "เริ่มเล่นเกม"
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Packet & System Log -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+      <b>📋 Event & MQTT Packet Log</b>
+      <button style="background:none; border:none; color:#64748b; cursor:pointer;" onclick="clearLog()">ล้าง Log</button>
+    </div>
+    <div id="log-box"></div>
+  </div>
+</div>
+
+<!-- โหลดโมดูลเกมแยกแต่ละไฟล์ -->
+<script src="games/game-run.js"></script>
+<script src="games/game-balloon.js"></script>
+<script src="games/game-safe.js"></script>
+
+<script>
+  // ========================================================
+  // 1. การตั้งค่าระบบเครือข่าย & ตัวแปรกลาง
+  // ========================================================
+  const ROOM_CODE = "thai99";
+  const TOPIC_STREAM = `game/${ROOM_CODE}/stream`;
+  const TOPIC_CMD    = `game/${ROOM_CODE}/cmd`;
+  const TOPIC_SYNC   = `game/${ROOM_CODE}/sync`;
+
+  const myClientId = "WEB_" + Math.random().toString(16).substring(2, 8);
+  let myRole = 0; // 0=Unassigned, 1=P1 (Host), 2=P2 (Client)
+  let assignedRoles = { p1: null, p2: null };
+  let knownDevices = new Set();
+  let totalScores = { p1: 0, p2: 0 };
+
+  let systemState = "LOBBY"; // LOBBY, COUNTDOWN, PLAYING, ROUND_OVER, MATCH_END
+  let currentRoundIndex = 0;
+  let activeGameInstance = null;
+
+  // ลำดับเกมที่จะเล่นตามลำดับ
+  const GAME_PLAYLIST = [GameRun, GameBalloon, GameSafe];
+
+  // ========================================================
+  // 2. ระบบ MQTT & State Synchronization
+  // ========================================================
+  const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+
+  client.on('connect', () => {
+    document.getElementById('lbl-broker').textContent = "MQTT: Online";
+    document.getElementById('lbl-broker').style.background = "#166534";
+    sysLog("Connected to MQTT Broker.", "#4ade80");
+
+    client.subscribe([TOPIC_STREAM, TOPIC_CMD, TOPIC_SYNC]);
+    // ถามหา State ทันที เผื่อว่าเป็นการรีเฟรชหน้าเว็บขณะเล่น
+    client.publish(TOPIC_SYNC, JSON.stringify({ type: "ASK_STATE", from: myClientId }));
+    sendWhoIsHere();
+  });
+
+  client.on('message', (topic, payload) => {
+    try {
+      const msg = JSON.parse(payload.toString());
+
+      // --- จัดการแพ็กเก็ต SYNC (กู้คืนสถานะข้ามหน้าเว็บ) ---
+      if (topic === TOPIC_SYNC) {
+        handleSyncPacket(msg);
+        return;
+      }
+
+      // --- จัดการแพ็กเก็ต CMD (คำสั่งระบบ / ลำดับเกม) ---
+      if (topic === TOPIC_CMD) {
+        handleCommandPacket(msg);
+        return;
+      }
+
+      // --- จัดการแพ็กเก็ต STREAM (ข้อมูลเซนเซอร์จากบอร์ด) ---
+      if (topic === TOPIC_STREAM) {
+        handleStreamPacket(msg);
+      }
+    } catch (e) {
+      // อาจมี string เปล่า หรือ text อื่นๆ
+    }
+  });
+
+  function handleSyncPacket(msg) {
+    // 1. มีคนอื่นในห้องถามหา State ล่าสุด -> ถ้าเราเป็น P1 ให้รายงานกลับ
+    if (msg.type === "ASK_STATE" && myRole === 1 && msg.from !== myClientId) {
+      sysLog(`Web ${msg.from} asked for state. Reporting...`, "#eab308");
+      client.publish(TOPIC_SYNC, JSON.stringify({
+        type: "STATE_REPORT",
+        to: msg.from,
+        state: systemState,
+        roles: assignedRoles,
+        scores: totalScores,
+        roundIndex: currentRoundIndex
+      }));
+    }
+    // 2. ตัวเราเพิ่งรีเฟรช แล้วได้รับรายงาน State จาก P1
+    else if (msg.type === "STATE_REPORT" && msg.to === myClientId) {
+      sysLog("State recovered from Peer Host!", "#4ade80");
+      assignedRoles = msg.roles;
+      totalScores = msg.scores;
+      currentRoundIndex = msg.roundIndex;
+      updateLobbyUI();
+
+      if (assignedRoles.p2 && assignedRoles.p2.includes("D")) {
+        // กำหนด Role ของตัวเราตามที่กู้มาได้
+        setMyRole(2);
+      }
+
+      // ถ้าหลุดเข้ามาตอนที่เกมกำลังเล่นอยู่ ให้เข้าสู่สถานะ Spectator
+      if (msg.state === "PLAYING") {
+        systemState = "PLAYING";
+        document.getElementById('lbl-state').textContent = "SPECTATING";
+        document.getElementById('game-stage').innerHTML = `
+          <div style="text-align:center; padding:40px; color:#facc15;">
+            <h3>👁️ กำลังอยู่ในโหมดสังเกตการณ์ (Spectator)</h3>
+            <p>คุณเชื่อมต่อเข้ามาใหม่ระหว่างรอบ จะสามารถร่วมเล่นได้ในด่านถัดไป</p>
+          </div>
+        `;
+      }
+    }
+  }
+
+  function handleCommandPacket(msg) {
+    if (msg.type === "ROLE") {
+      assignedRoles.p1 = msg.p1;
+      assignedRoles.p2 = msg.p2;
+      updateLobbyUI();
+
+      // เช็คว่าหน้าเว็บเราเชื่อมกับบอร์ดตัวไหน (กรณีรันคู่กับบอทหรือบอร์ดจริง)
+      if (assignedRoles.p1 && !assignedRoles.p1.includes("BOT")) setMyRole(1);
+    }
+    else if (msg.type === "START_COUNTDOWN") {
+      startSyncCountdown(msg.roundIndex);
+    }
+    else if (msg.type === "ROUND_RESULT") {
+      handleRoundResult(msg);
+    }
+  }
+
+  function handleStreamPacket(data) {
+    if (data.type === "PING" && data.id) {
+      if (!knownDevices.has(data.id)) {
+        knownDevices.add(data.id);
+        updateDeviceList();
+      }
     }
 
-    // ข้อมูลคะแนนรวม
-    let totalScore = { p1: 0, p2: 0 };
-    let gameState = 'IDLE'; // IDLE, MEMORIZE, PLAYING, ROUND_OVER
-    let targetSize = 0; // ขนาดเป้าหมาย (30px - 140px)
+    // ส่งต่อข้อมูลเซนเซอร์ให้เฉพาะโมดูลเกมปัจจุบันที่กำลังเล่นอยู่
+    if (systemState === "PLAYING" && activeGameInstance && activeGameInstance.handlePacket) {
+      // ระบุว่าแพ็กเก็ตนี้มาจาก P1 หรือ P2
+      let senderRole = 0;
+      if (data.id === assignedRoles.p1) senderRole = 1;
+      else if (data.id === assignedRoles.p2) senderRole = 2;
+
+      if (senderRole !== 0) {
+        activeGameInstance.handlePacket(senderRole, data);
+      }
+    }
+  }
+
+  // ========================================================
+  // 3. ระบบควบคุมการเปลี่ยนด่าน (Game Lifecycle Manager)
+  // ========================================================
+  function requestStartGame() {
+    if (myRole !== 1) return alert("เฉพาะ Player 1 (Host) เท่านั้นที่สั่งเริ่มเกมได้");
+    currentRoundIndex = 0;
+    totalScores = { p1: 0, p2: 0 };
+    updateScoresUI();
+
+    // ส่งสัญญาณให้ทุกเครื่องนับถอยหลังพร้อมกัน
+    client.publish(TOPIC_CMD, JSON.stringify({
+      type: "START_COUNTDOWN",
+      roundIndex: currentRoundIndex
+    }));
+  }
+
+  function startSyncCountdown(roundIdx) {
+    systemState = "COUNTDOWN";
+    document.getElementById('lbl-state').textContent = "COUNTDOWN";
+    currentRoundIndex = roundIdx;
+
+    const gameClass = GAME_PLAYLIST[roundIdx];
+    document.getElementById('arena-title').textContent = `ด่านที่ ${roundIdx + 1}: ${gameClass.title}`;
     
-    // ข้อมูลของผู้เล่นในแต่ละรอบ
-    let p1Data = { current: 30, locked: false, popped: false };
-    let p2Data = { current: 30, locked: false, popped: false };
+    // สั่งเปลี่ยนโหมดบนบอร์ด Arduino ให้พร้อมสำหรับเกมนี้
+    sendBoardCmd({ type: "MODE", mode: gameClass.arduinoMode });
+    sendBoardCmd({ type: "LCD", id: "ALL", l1: "ROUND " + (roundIdx + 1), l2: "PREPARE..." });
 
-    // DOM Elements
-    const bTarget = document.getElementById('balloon-target');
-    const bP1 = document.getElementById('balloon-p1');
-    const bP2 = document.getElementById('balloon-p2');
-    const targetSlot = document.getElementById('target-slot');
-    const instruction = document.getElementById('instruction');
-    const resultText = document.getElementById('result-text');
-    const startBtn = document.getElementById('start-btn');
+    let count = 3;
+    const stage = document.getElementById('game-stage');
+    stage.innerHTML = `<h1 style="text-align:center; font-size:60px; color:#facc15; padding-top:40px;">${count}</h1>`;
 
-    // --- เชื่อมต่อ MQTT Broker ---
-    const client = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
-    client.on('connect', () => {
-      log('Connected to MQTT Broker.');
-      // บอร์ดส่งค่าผ่าน Topic: mygame/p1/data และ mygame/p2/data
-      client.subscribe(['mygame/p1/data', 'mygame/p2/data']);
-    });
-
-    // เริ่มรอบเกม
-    function startRound() {
-      gameState = 'MEMORIZE';
-      startBtn.disabled = true;
-      resultText.textContent = '';
-      
-      // รีเซ็ตสถานะผู้เล่น
-      p1Data = { current: 30, locked: false, popped: false };
-      p2Data = { current: 30, locked: false, popped: false };
-      updateBalloon(bP1, 30);
-      updateBalloon(bP2, 30);
-      document.getElementById('p1-status').textContent = 'กำลังปั๊ม...';
-      document.getElementById('p2-status').textContent = 'กำลังปั๊ม...';
-
-      // สุ่มขนาดเป้าหมาย (60px ถึง 150px)
-      targetSize = Math.floor(Math.random() * 90) + 60;
-      targetSlot.style.visibility = 'visible';
-      updateBalloon(bTarget, targetSize);
-      bTarget.textContent = 'จำไว้!';
-
-      instruction.textContent = 'จำขนาดลูกโป่งสีเหลืองนี้ให้ดี! (3 วินาที)';
-
-      // นับถอยหลัง 3 วินาที แล้วซ่อนเป้าหมาย ให้เริ่มปั๊ม
-      setTimeout(() => {
-        targetSlot.style.visibility = 'hidden';
-        gameState = 'PLAYING';
-        instruction.textContent = 'เริ่มปั๊มมือ! แล้วกดปุ่มล็อกผลบน Keypad';
-      }, 3000);
-    }
-
-    function updateBalloon(el, size) {
-      el.style.width = size + 'px';
-      el.style.height = size + 'px';
-      el.textContent = Math.round(size);
-    }
-
-    // ประมวลผลข้อมูลที่ส่งมาจาก Arduino
-    client.on('message', (topic, message) => {
-      try {
-        const payload = JSON.parse(message.toString());
-        // รูปแบบ JSON ที่ส่งมา: {"val": 75, "lock": true}
-        if (topic === 'mygame/p1/data') handlePlayerUpdate(1, payload);
-        if (topic === 'mygame/p2/data') handlePlayerUpdate(2, payload);
-      } catch(e) {
-        // รองรับกรณีส่งข้อความธรรมดา (fallback)
-        log(`Parse error on ${topic}: ${message.toString()}`);
-      }
-    });
-
-    function handlePlayerUpdate(playerId, data) {
-      if (gameState !== 'PLAYING') return;
-
-      let p = (playerId === 1) ? p1Data : p2Data;
-      let el = (playerId === 1) ? bP1 : bP2;
-      let statusEl = document.getElementById(playerId === 1 ? 'p1-status' : 'p2-status');
-
-      if (p.locked) return; // ล็อกคะแนนแล้วไม่รับค่าเพิ่ม
-
-      // อัปเดตขนาดตามจำนวนที่ปั๊ม
-      p.current = Math.max(30, data.val);
-      updateBalloon(el, p.current);
-
-      // ถ้าปั๊มเกินขนาดเกินไป (เช่น เกินเป้า 25px) ถือว่าแตกทันที
-      if (p.current > targetSize + 25) {
-        p.popped = true;
-        p.locked = true;
-        el.textContent = 'แตก!';
-        el.style.background = '#475569';
-        statusEl.textContent = '💥 ลูกโป่งแตก!';
-      }
-
-      // เมื่อผู้เล่นกดปุ่มล็อกผลบน Keypad (เช่น ส่ง lock: true)
-      if (data.lock && !p.locked) {
-        p.locked = true;
-        statusEl.textContent = '🔒 ล็อกผลแล้ว';
-      }
-
-      // ถ้าทั้งสองคนล็อกผลแล้ว ให้ตัดสินคะแนน
-      if (p1Data.locked && p2Data.locked) {
-        evaluateWinner();
-      }
-    }
-
-    // ตัดสินผลแพ้ชนะ
-    function evaluateWinner() {
-      gameState = 'ROUND_OVER';
-      targetSlot.style.visibility = 'visible'; // เฉลยเป้าหมาย
-      bTarget.textContent = targetSize;
-
-      let diff1 = p1Data.popped ? 999 : Math.abs(p1Data.current - targetSize);
-      let diff2 = p2Data.popped ? 999 : Math.abs(p2Data.current - targetSize);
-
-      if (diff1 === 999 && diff2 === 999) {
-        resultText.textContent = '💥 ลูกโป่งแตกทั้งคู่ ไม่มีใครได้แต้ม!';
-      } else if (diff1 < diff2) {
-        resultText.textContent = '🎉 PLAYER 1 ชนะรอบนี้! (ใกล้เคียงที่สุด)';
-        totalScore.p1++;
-      } else if (diff2 < diff1) {
-        resultText.textContent = '🎉 PLAYER 2 ชนะรอบนี้! (ใกล้เคียงที่สุด)';
-        totalScore.p2++;
+    const timer = setInterval(() => {
+      count--;
+      if (count > 0) {
+        stage.innerHTML = `<h1 style="text-align:center; font-size:60px; color:#facc15; padding-top:40px;">${count}</h1>`;
       } else {
-        resultText.textContent = '🤝 เสมอกัน!';
+        clearInterval(timer);
+        stage.innerHTML = `<h1 style="text-align:center; font-size:60px; color:#4ade80; padding-top:40px;">START!</h1>`;
+        setTimeout(() => launchRound(gameClass), 400);
       }
+    }, 1000);
+  }
 
-      document.getElementById('total-p1').textContent = totalScore.p1;
-      document.getElementById('total-p2').textContent = totalScore.p2;
-      startBtn.disabled = false;
-      instruction.textContent = 'จบรอบแล้ว กดเริ่มรอบถัดไปได้เลย';
+  function launchRound(gameClass) {
+    systemState = "PLAYING";
+    document.getElementById('lbl-state').textContent = "PLAYING";
+    sendBoardCmd({ type: "LCD", id: "ALL", l1: "GO GO GO!", l2: gameClass.arduinoMode });
+
+    // ทำลายเกมเดิมทิ้งถ้ามี
+    if (activeGameInstance && activeGameInstance.destroy) {
+      activeGameInstance.destroy();
     }
 
-    // ปุ่มจำลองการทดสอบบนคีย์บอร์ดคอมพิวเตอร์
-    // P1: กด 'W' เพื่อปั๊ม, 'S' เพื่อล็อกผล
-    // P2: กด 'ArrowUp' เพื่อปั๊ม, 'ArrowDown' เพื่อล็อกผล
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'w') handlePlayerUpdate(1, { val: p1Data.current + 8, lock: false });
-      if (e.key === 's') handlePlayerUpdate(1, { val: p1Data.current, lock: true });
-      if (e.key === 'ArrowUp') handlePlayerUpdate(2, { val: p2Data.current + 8, lock: false });
-      if (e.key === 'ArrowDown') handlePlayerUpdate(2, { val: p2Data.current, lock: true });
+    // เริ่มต้นเกมใหม่
+    activeGameInstance = gameClass;
+    activeGameInstance.init(document.getElementById('game-stage'), {
+      myRole: myRole,
+      assignedRoles: assignedRoles,
+      // ฟังก์ชัน Callback เมื่อเล่นจบ ส่งมาให้ระบบกลาง
+      onRoundFinish: (winnerRole, scores) => {
+        if (myRole === 1) { // มีเฉพาะ Host เท่านั้นที่ส่งสรุปผล
+          client.publish(TOPIC_CMD, JSON.stringify({
+            type: "ROUND_RESULT",
+            winner: winnerRole,
+            roundIndex: currentRoundIndex,
+            scores: scores
+          }));
+        }
+      }
     });
-  </script>
+
+    // แจ้งเตือนบอทให้เริ่มทำงานตามเกมนี้
+    if (botActive) BotRunner.startForGame(gameClass.arduinoMode);
+  }
+
+  function handleRoundResult(result) {
+    systemState = "ROUND_OVER";
+    document.getElementById('lbl-state').textContent = "ROUND OVER";
+
+    if (activeGameInstance && activeGameInstance.destroy) {
+      activeGameInstance.destroy();
+    }
+    if (botActive) BotRunner.stop();
+
+    totalScores.p1 += (result.scores.p1 || 0);
+    totalScores.p2 += (result.scores.p2 || 0);
+    updateScoresUI();
+
+    const winnerText = result.winner === 1 ? "🏆 Player 1 ชนะรอบนี้!" :
+                       result.winner === 2 ? "🏆 Player 2 ชนะรอบนี้!" : "🤝 เสมอกันในรอบนี้!";
+
+    sendBoardCmd({ type: "LCD", id: "ALL", l1: "ROUND OVER", l2: "WIN: P" + result.winner });
+
+    document.getElementById('game-stage').innerHTML = `
+      <div style="text-align:center; padding:30px;">
+        <h2 style="color:#4ade80; margin-bottom:8px;">${winnerText}</h2>
+        <p style="color:#94a3b8;">คะแนนรอบนี้: P1 [${result.scores.p1}] vs P2 [${result.scores.p2}]</p>
+        <div style="margin-top:20px; color:#facc15;">กำลังเตรียมตัวเข้าด่านถัดไปใน 4 วินาที...</div>
+      </div>
+    `;
+
+    // ถ้าเป็น Host (P1) จะเป็นคนควบคุมลำดับเพื่อเริ่มด่านต่อไป
+    if (myRole === 1) {
+      setTimeout(() => {
+        if (currentRoundIndex + 1 < GAME_PLAYLIST.length) {
+          client.publish(TOPIC_CMD, JSON.stringify({
+            type: "START_COUNTDOWN",
+            roundIndex: currentRoundIndex + 1
+          }));
+        } else {
+          // จบการแข่งขันทุกด่าน
+          client.publish(TOPIC_CMD, JSON.stringify({
+            type: "MATCH_END",
+            scores: totalScores
+          }));
+          document.getElementById('game-stage').innerHTML = `
+            <div style="text-align:center; padding:30px;">
+              <h1 style="color:#facc15;">🏁 จบการแข่งขันทุกด่าน!</h1>
+              <p style="font-size:18px; margin-top:10px;">คะแนนรวมสุดท้าย: P1 [${totalScores.p1}] - P2 [${totalScores.p2}]</p>
+              <button class="btn btn-purple" style="margin-top:14px;" onclick="requestStartGame()">เริ่มแข่งใหม่อีกครั้ง</button>
+            </div>
+          `;
+        }
+      }, 4000);
+    }
+  }
+
+  // ========================================================
+  // 4. ฟังก์ชันช่วยเหลือและ UI
+  // ========================================================
+  function sendBoardCmd(obj) { client.publish(TOPIC_CMD, JSON.stringify(obj)); }
+  function sendWhoIsHere() { client.publish(TOPIC_CMD, "WHO_IS_HERE"); sysLog("TX -> WHO_IS_HERE"); }
+
+  function setMyRole(role) {
+    myRole = role;
+    const badge = document.getElementById('lbl-myrole');
+    badge.textContent = `Role: P${role} (${role === 1 ? 'Host' : 'Client'})`;
+    badge.style.background = role === 1 ? '#0284c7' : '#e11d48';
+    document.getElementById('btn-start').disabled = (role !== 1);
+  }
+
+  function updateDeviceList() {
+    document.getElementById('lbl-devices').textContent = Array.from(knownDevices).join(", ");
+  }
+
+  function autoPairRoles() {
+    const list = Array.from(knownDevices);
+    if (!list.length) return alert("ยังไม่พบบอร์ด Arduino");
+    list.sort(); // เรียงตัวอักษรแบบ Deterministic
+
+    assignedRoles.p1 = list[0];
+    assignedRoles.p2 = list[1] || "D_BOT";
+
+    sendBoardCmd({ type: "ROLE", p1: assignedRoles.p1, p2: assignedRoles.p2 });
+    setMyRole(1); // จอนี้กดจับคู่ ให้เป็น P1 Host
+    updateLobbyUI();
+    sysLog(`Paired: P1=${assignedRoles.p1}, P2=${assignedRoles.p2}`, "#4ade80");
+  }
+
+  function updateLobbyUI() {
+    document.getElementById('p1-id').textContent = assignedRoles.p1 || "Unassigned";
+    document.getElementById('p2-id').textContent = assignedRoles.p2 || "Unassigned";
+    document.getElementById('btn-start').disabled = !(myRole === 1 && assignedRoles.p1 && assignedRoles.p2);
+  }
+
+  function updateScoresUI() {
+    document.getElementById('p1-total-score').textContent = totalScores.p1;
+    document.getElementById('p2-total-score').textContent = totalScores.p2;
+  }
+
+  function sysLog(msg, color = '#38bdf8') {
+    const box = document.getElementById('log-box');
+    const div = document.createElement('div');
+    div.style.color = color;
+    div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+  function clearLog() { document.getElementById('log-box').innerHTML = ""; }
+
+  // ========================================================
+  // 5. Bot Simulator (บอทจำลองสำหรับทดสอบ P2 อัตโนมัติ)
+  // ========================================================
+  let botActive = false;
+  const botId = "D_BOT";
+
+  function toggleBot() {
+    botActive = !botActive;
+    if (botActive) {
+      knownDevices.add(botId);
+      updateDeviceList();
+      client.publish(TOPIC_STREAM, JSON.stringify({ type: "PING", id: botId }));
+      sysLog("🤖 Bot P2 Active (ID: D_BOT)", "#c084fc");
+    } else {
+      BotRunner.stop();
+      knownDevices.delete(botId);
+      updateDeviceList();
+      sysLog("🤖 Bot P2 Disabled", "#94a3b8");
+    }
+  }
+
+  const BotRunner = {
+    interval: null,
+    startForGame(mode) {
+      this.stop();
+      if (mode === "RUN") {
+        // บอทสุ่มปัดมือนับก้าว ทุกๆ 250 - 450 ms
+        this.interval = setInterval(() => {
+          client.publish(TOPIC_STREAM, JSON.stringify({ type: "STEP", id: botId }));
+        }, Math.floor(Math.random() * 200) + 250);
+      } else if (mode === "BALLOON") {
+        // บอทสุ่มปั๊มลูกโป่ง
+        this.interval = setInterval(() => {
+          const depth = Math.floor(Math.random() * 20) + 15;
+          client.publish(TOPIC_STREAM, JSON.stringify({ type: "PUMP", id: botId, depth: depth }));
+        }, 600);
+      } else if (mode === "SAFE") {
+        // บอทสุ่มหมุน Potentiometer
+        let val = 10;
+        this.interval = setInterval(() => {
+          val = (val + 12) % 100;
+          client.publish(TOPIC_STREAM, JSON.stringify({ type: "POT", id: botId, val: val }));
+        }, 500);
+      }
+    },
+    stop() {
+      if (this.interval) clearInterval(this.interval);
+    }
+  };
+</script>
 </body>
 </html>
