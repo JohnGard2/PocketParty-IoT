@@ -1,18 +1,13 @@
 /**
  * Game 2: Balloon Pump (จดจำขนาด + ระบบรีเซ็ตลมและระเบิด)
- * กติกา:
- * 1. จดจำขนาดตัวอย่างตอนเริ่มเกม
- * 2. ปั๊มลูกโป่งให้ใกล้เคียงตัวอย่างที่สุด (ไม่มีตัวเลข % แสดง)
- * 3. มีปุ่มปล่อยลม (Reset) เพื่อเริ่มเป่าใหม่ได้หากเป่าเกิน
- * 4. หากเป่าจนใหญ่เกินขนาดที่กำหนด (Over-inflate) ลูกโป่งจะแตกทันที (ถ้า P2 ทำแตก P1 ชนะทันที)
  */
 const GameBalloon = {
   id: "BALLOON_PUMP",
-  title: "🎈 เป่าลูกโป่งให้เท่าตัวอย่าง",
+  title: "🎈 ปั๊มลูกโป่งให้เท่าตัวอย่าง",
   arduinoMode: "BALLOON",
 
   targetAir: 0,
-  maxAir: 115, // ขีดจำกัดสูงสุด หากเกินนี้ลูกโป่งจะแตก
+  maxAir: 115,
   p1Air: 0,
   p2Air: 0,
   p1Locked: false,
@@ -22,7 +17,7 @@ const GameBalloon = {
   previewTimer: null,
 
   init(containerEl, config) {
-    this.targetAir = Math.floor(Math.random() * 45) + 40; // สุ่มขนาดเป้าหมาย 40 - 85
+    this.targetAir = Math.floor(Math.random() * 45) + 40;
     this.p1Air = 0;
     this.p2Air = 0;
     this.p1Locked = false;
@@ -30,59 +25,57 @@ const GameBalloon = {
     this.isEnded = false;
     this.callbacks = config;
 
-    const targetSize = 50 + (this.targetAir * 1.0);
+    const targetSize = 46 + (this.targetAir * 0.9);
 
     containerEl.innerHTML = `
-      <div style="text-align:center; margin-bottom:12px;">
-        <div id="target-wrapper">
-          <div style="font-size:13px; color:#facc15; font-weight:bold;">🎯 จดจำขนาดลูกโป่งตัวอย่างนี้! (<span id="target-countdown">3</span>s)</div>
-          <div id="balloon-target" style="margin:10px auto; width:${targetSize}px; height:${targetSize}px; background:#e2e8f0; border-radius:50%; border:2px dashed #94a3b8; transition:all 0.2s;"></div>
-        </div>
-        <div id="target-hidden-msg" style="display:none; font-size:13px; color:#94a3b8;">
-          ตัวอย่างถูกซ่อนแล้ว! ปั๊มให้ใกล้เคียงที่สุด (ระวังอย่าให้ลูกโป่งแตก)
-        </div>
-      </div>
-
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; text-align:center;">
-        <!-- P1 Balloon -->
-        <div style="background:#0b0f19; padding:12px; border-radius:8px; border:1px solid #38bdf8;">
-          <h4 style="color:#38bdf8; margin:0 0 8px 0;">P1 BALLOON</h4>
-          <div style="height:170px; display:flex; align-items:center; justify-content:center;">
-            <div id="balloon-p1" style="width:50px; height:50px; background:#38bdf8; border-radius:50%; transition:all 0.1s;"></div>
+      <div style="text-align:center; margin-bottom:10px;">
+        <div id="target-wrapper" style="background:#fffbeb; border:2.5px solid #18191c; border-radius:12px; padding:8px; box-shadow:0 3px 0 #18191c;">
+          <div style="font-size:12px; color:#b45309; font-weight:800;">
+            ⏱️ จดจำขนาดตัวอย่างใน <span id="target-countdown" style="background:#18191c; color:#ffd000; padding:1px 6px; border-radius:4px;">3</span> วินาที!
           </div>
-          <div id="p1-status" style="font-size:12px; color:#94a3b8; margin-bottom:8px;">กำลังเป่า...</div>
-          <div style="display:flex; justify-content:center; gap:6px;">
-            <button id="btn-p1-reset" style="background:#475569; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">💨 ปล่อยลม (Reset)</button>
-            <button id="btn-p1-lock" style="background:#0284c7; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">🔒 ล็อคขนาด</button>
+          <div style="height:125px; display:flex; align-items:center; justify-content:center;">
+            <div id="balloon-target" style="width:${targetSize}px; height:${targetSize}px; background:radial-gradient(circle at 32% 30%, #fff, #ffd000 55%, #d97706); border-radius:50% 50% 48% 48%; border:3px solid #18191c; box-shadow:0 4px 0 rgba(0,0,0,0.2);"></div>
           </div>
         </div>
-
-        <!-- P2 Balloon -->
-        <div style="background:#0b0f19; padding:12px; border-radius:8px; border:1px solid #f43f5e;">
-          <h4 style="color:#f43f5e; margin:0 0 8px 0;">P2 BALLOON</h4>
-          <div style="height:170px; display:flex; align-items:center; justify-content:center;">
-            <div id="balloon-p2" style="width:50px; height:50px; background:#f43f5e; border-radius:50%; transition:all 0.1s;"></div>
-          </div>
-          <div id="p2-status" style="font-size:12px; color:#94a3b8; margin-bottom:8px;">กำลังเป่า...</div>
-          <div style="display:flex; justify-content:center; gap:6px;">
-            <button id="btn-p2-reset" style="background:#475569; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">💨 ปล่อยลม (Reset)</button>
-            <button id="btn-p2-lock" style="background:#e11d48; color:#fff; border:none; padding:4px 8px; border-radius:4px; cursor:pointer; font-size:11px;">🔒 ล็อคขนาด</button>
-          </div>
+        <div id="target-hidden-msg" style="display:none; background:#18191c; color:#ffd000; padding:6px 10px; border-radius:8px; font-size:12px; font-weight:700;">
+          🙈 ซ่อนตัวอย่างแล้ว! ปั๊มให้ใกล้เคียงที่สุด (เกินขีดจำกัด = แตก 💥)
         </div>
       </div>
 
-      <div style="text-align:center; margin-top:10px; font-size:12px; color:#64748b;">
-        Keypad: กด <b>*</b> เพื่อปล่อยลมรีเซ็ต | กด <b>#</b> เพื่อล็อคขนาด
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; text-align:center;">
+        <!-- P1 Balloon Chamber -->
+        <div style="background:#f8fafc; padding:10px 8px; border-radius:14px; border:3px solid #18191c; box-shadow:0 3px 0 #18191c; display:flex; flex-direction:column; justify-content:space-between;">
+          <div style="font-size:12px; font-weight:900; color:#008eb3;">P1 CHAMBER</div>
+          <div style="height:145px; display:flex; align-items:center; justify-content:center; position:relative;">
+            <div id="balloon-p1" style="width:46px; height:46px; background:radial-gradient(circle at 30% 30%, #a5f3fc, #00b8e6 60%, #0284c7); border-radius:50%; border:2.5px solid #18191c; transition:all 0.12s;"></div>
+          </div>
+          <div id="p1-status" style="font-size:11px; font-weight:700; color:#646875; margin-bottom:6px;">กำลังปั๊มลม...</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
+            <button id="btn-p1-reset" class="btn-tactile" style="padding:5px; font-size:10px;">💨 รีเซ็ต (*)</button>
+            <button id="btn-p1-lock" class="btn-tactile btn-blue" style="padding:5px; font-size:10px;">🔒 ล็อค (#)</button>
+          </div>
+        </div>
+
+        <!-- P2 Balloon Chamber -->
+        <div style="background:#f8fafc; padding:10px 8px; border-radius:14px; border:3px solid #18191c; box-shadow:0 3px 0 #18191c; display:flex; flex-direction:column; justify-content:space-between;">
+          <div style="font-size:12px; font-weight:900; color:#cc2936;">P2 CHAMBER</div>
+          <div style="height:145px; display:flex; align-items:center; justify-content:center; position:relative;">
+            <div id="balloon-p2" style="width:46px; height:46px; background:radial-gradient(circle at 30% 30%, #fecdd3, #ff4554 60%, #e11d48); border-radius:50%; border:2.5px solid #18191c; transition:all 0.12s;"></div>
+          </div>
+          <div id="p2-status" style="font-size:11px; font-weight:700; color:#646875; margin-bottom:6px;">กำลังปั๊มลม...</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px;">
+            <button id="btn-p2-reset" class="btn-tactile" style="padding:5px; font-size:10px;">💨 รีเซ็ต (*)</button>
+            <button id="btn-p2-lock" class="btn-tactile btn-red" style="padding:5px; font-size:10px;">🔒 ล็อค (#)</button>
+          </div>
+        </div>
       </div>
     `;
 
-    // ผูก Event ปุ่มกดบนหน้าจอ
     document.getElementById("btn-p1-reset")?.addEventListener("click", () => this.resetBalloon(1));
     document.getElementById("btn-p2-reset")?.addEventListener("click", () => this.resetBalloon(2));
     document.getElementById("btn-p1-lock")?.addEventListener("click", () => this.lockBalloon(1));
     document.getElementById("btn-p2-lock")?.addEventListener("click", () => this.lockBalloon(2));
 
-    // นับถอยหลังซ่อนตัวอย่างเป้าหมาย
     let timeLeft = 3;
     this.previewTimer = setInterval(() => {
       timeLeft--;
@@ -102,7 +95,6 @@ const GameBalloon = {
   handlePacket(role, data) {
     if (this.isEnded) return;
 
-    // 1. รับสัญญาณปั๊มลม
     if (data.type === "PUMP") {
       const addedAir = Math.max(1, Math.round(data.depth * 0.25));
       if (role === 1 && !this.p1Locked) {
@@ -113,13 +105,9 @@ const GameBalloon = {
         this.renderBalloon(2, this.p2Air);
       }
     }
-
-    // 2. รับสัญญาณปล่อยลม / รีเซ็ต (ผ่าน Packet RESET/DEFLATE หรือปุ่ม '*')
     else if (data.type === "RESET" || data.type === "DEFLATE" || (data.type === "KEY" && data.key === "*")) {
       this.resetBalloon(role);
     }
-
-    // 3. รับสัญญาณล็อคขนาด (ผ่าน Packet CONFIRM หรือปุ่ม '#')
     else if (data.type === "CONFIRM" || (data.type === "KEY" && data.key === "#")) {
       this.lockBalloon(role);
     }
@@ -133,8 +121,8 @@ const GameBalloon = {
       this.p1Locked = false;
       const status = document.getElementById("p1-status");
       if (status) {
-        status.textContent = "กำลังเป่า...";
-        status.style.color = "#94a3b8";
+        status.textContent = "ปล่อยลมแล้ว เริ่มใหม่!";
+        status.style.color = "#646875";
       }
       this.renderBalloon(1, 0);
     } else if (role === 2) {
@@ -142,8 +130,8 @@ const GameBalloon = {
       this.p2Locked = false;
       const status = document.getElementById("p2-status");
       if (status) {
-        status.textContent = "กำลังเป่า...";
-        status.style.color = "#94a3b8";
+        status.textContent = "ปล่อยลมแล้ว เริ่มใหม่!";
+        status.style.color = "#646875";
       }
       this.renderBalloon(2, 0);
     }
@@ -156,15 +144,15 @@ const GameBalloon = {
       this.p1Locked = true;
       const status = document.getElementById("p1-status");
       if (status) {
-        status.textContent = "🔒 ล็อคขนาดแล้ว";
-        status.style.color = "#38bdf8";
+        status.textContent = "🔒 ล็อคขนาดแล้ว!";
+        status.style.color = "#008eb3";
       }
     } else if (role === 2) {
       this.p2Locked = true;
       const status = document.getElementById("p2-status");
       if (status) {
-        status.textContent = "🔒 ล็อคขนาดแล้ว";
-        status.style.color = "#f43f5e";
+        status.textContent = "🔒 ล็อคขนาดแล้ว!";
+        status.style.color = "#cc2936";
       }
     }
 
@@ -179,19 +167,17 @@ const GameBalloon = {
     const status = document.getElementById(`p${role}-status`);
     if (!el) return;
 
-    // ตรวจสอบเงื่อนไขลูกโป่งแตก (Over-inflate)
     if (air > this.maxAir) {
       el.style.background = "transparent";
-      el.style.border = "3px dashed #ef4444";
-      el.style.width = "70px";
-      el.style.height = "70px";
+      el.style.border = "3px dashed #ff4554";
+      el.style.width = "80px";
+      el.style.height = "80px";
 
       if (status) {
         status.textContent = "💥 ลูกโป่งแตก!";
-        status.style.color = "#ef4444";
+        status.style.color = "#ff4554";
       }
 
-      // หาก P2 ทำแตก -> P1 การันตีชนะทันที (และหาก P1 ทำแตกเอง -> P2 ชนะ)
       if (role === 2) {
         this.finishGame(1);
       } else {
@@ -200,22 +186,22 @@ const GameBalloon = {
       return;
     }
 
-    // ขยายขนาดตามลมที่เป่าเข้าไป
-    const size = 50 + (air * 1.0);
+    const size = 46 + (air * 0.9);
     el.style.width = `${size}px`;
     el.style.height = `${size}px`;
-    el.style.border = "none";
-    el.style.background = role === 1 ? "#38bdf8" : "#f43f5e";
+    el.style.border = "2.5px solid #18191c";
+    el.style.background = role === 1
+      ? "radial-gradient(circle at 30% 30%, #a5f3fc, #00b8e6 60%, #0284c7)"
+      : "radial-gradient(circle at 30% 30%, #fecdd3, #ff4554 60%, #e11d48)";
   },
 
   evaluateWinner() {
     const p1Diff = Math.abs(this.p1Air - this.targetAir);
     const p2Diff = Math.abs(this.p2Air - this.targetAir);
 
-    // แสดงเฉลยขนาด
     const hiddenMsg = document.getElementById("target-hidden-msg");
     if (hiddenMsg) {
-      hiddenMsg.innerHTML = `<b style="color:#facc15;">เฉลยขนาดเป้าหมาย!</b>`;
+      hiddenMsg.innerHTML = `🎯 เฉลย! P1 คลาดเคลื่อน ${p1Diff} | P2 คลาดเคลื่อน ${p2Diff}`;
     }
     const targetEl = document.getElementById("target-wrapper");
     if (targetEl) targetEl.style.display = "block";
