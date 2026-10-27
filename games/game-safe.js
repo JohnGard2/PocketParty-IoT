@@ -4,10 +4,9 @@
  */
 const GameSafe = {
   id: "SAFE_CRACKER",
-  title: "🔐 ถอดรหัสตู้เซฟ 3 ชั้น (Step 5)",
+  title: "🔐 ถอดรหัสตู้เซฟ 3 ชั้น",
   arduinoMode: "SAFE",
 
-  // รหัส 3 สเต็ป (ลงท้ายด้วยเลข 0 หรือ 5 เสมอ)
   targets: [0, 0, 0],
   p1Stage: 0,
   p2Stage: 0,
@@ -16,12 +15,10 @@ const GameSafe = {
   isEnded: false,
   callbacks: null,
 
-  // ฟังก์ชันแปลงค่าให้ปัดเป็นทีละ 5 (0, 5, 10, ..., 100)
   snapTo5(val) {
     return Math.round(val / 5) * 5;
   },
 
-  // สุ่มเลข step 5 ช่วง 10 - 90
   randomStep5() {
     return (Math.floor(Math.random() * 17) + 2) * 5;
   },
@@ -36,35 +33,60 @@ const GameSafe = {
     this.callbacks = config;
 
     containerEl.innerHTML = `
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
-        <!-- Player 1 -->
-        <div style="background:#0b0f19; padding:12px; border-radius:8px; border:1px solid #38bdf8;">
-          <h4 style="color:#38bdf8; margin:0 0 6px 0;">P1 Safe (<span id="safe-p1-stage">1</span>/3)</h4>
-          <div id="safe-p1-hint" style="font-size:13px; color:#facc15; min-height:36px;">
-            เป้าหมาย: <b>${this.targets[0]}</b>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <!-- P1 Safe Dial Vault -->
+        <div style="background:#f8fafc; padding:10px; border-radius:14px; border:3px solid #18191c; box-shadow:0 3px 0 #18191c; text-align:center;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-weight:900; font-size:12px; color:#008eb3;">P1 VAULT</span>
+            <span style="font-family:'JetBrains Mono', monospace; font-size:11px; font-weight:800; background:#e0f8fe; padding:1px 6px; border-radius:4px; border:1.5px solid #18191c;">ชั้น <span id="safe-p1-stage">1</span>/3</span>
           </div>
-          <div style="font-size:14px; margin:6px 0;">ค่าปัจจุบัน: <b id="safe-p1-val">0</b></div>
-          <div style="height:12px; background:#334155; border-radius:6px; margin:8px 0; overflow:hidden;">
-            <div id="safe-p1-bar" style="height:100%; width:0%; background:#38bdf8; transition:width 0.1s;"></div>
+
+          <!-- Rotary Knob Visual -->
+          <div style="position:relative; width:96px; height:96px; margin:8px auto; border-radius:50%; background:#18191c; border:3px solid #00b8e6; display:grid; place-items:center; box-shadow:0 4px 0 rgba(0,0,0,0.25);">
+            <div id="safe-p1-dial" style="position:absolute; inset:6px; border-radius:50%; border:2px dashed #64748b; transition:transform 0.15s ease;">
+              <div style="width:6px; height:12px; background:#00b8e6; margin:0 auto; border-radius:3px;"></div>
+            </div>
+            <div style="font-family:'JetBrains Mono', monospace; font-size:22px; font-weight:800; color:#fff; z-index:2;" id="safe-p1-val">0</div>
           </div>
-          <div id="safe-p1-status" style="font-size:12px; color:#94a3b8;">หมุนให้ตรงแล้วกด #</div>
+
+          <div id="safe-p1-hint" style="background:#fffbeb; border:2px solid #18191c; border-radius:8px; padding:4px; font-size:12px; font-weight:700; color:#b45309; min-height:32px; display:grid; place-items:center; margin-bottom:6px;">
+            รหัสชั้นแรก: <b>${this.targets[0]}</b>
+          </div>
+
+          <div style="height:8px; background:#e2e8f0; border-radius:4px; border:1.5px solid #18191c; overflow:hidden; margin-bottom:6px;">
+            <div id="safe-p1-bar" style="height:100%; width:0%; background:#00b8e6; transition:width 0.1s;"></div>
+          </div>
+          <div id="safe-p1-status" style="font-size:11px; font-weight:700; color:#646875;">หมุนให้ตรงแล้วกด #</div>
         </div>
 
-        <!-- Player 2 -->
-        <div style="background:#0b0f19; padding:12px; border-radius:8px; border:1px solid #f43f5e;">
-          <h4 style="color:#f43f5e; margin:0 0 6px 0;">P2 Safe (<span id="safe-p2-stage">1</span>/3)</h4>
-          <div id="safe-p2-hint" style="font-size:13px; color:#facc15; min-height:36px;">
-            เป้าหมาย: <b>${this.targets[0]}</b>
+        <!-- P2 Safe Dial Vault -->
+        <div style="background:#f8fafc; padding:10px; border-radius:14px; border:3px solid #18191c; box-shadow:0 3px 0 #18191c; text-align:center;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-weight:900; font-size:12px; color:#cc2936;">P2 VAULT</span>
+            <span style="font-family:'JetBrains Mono', monospace; font-size:11px; font-weight:800; background:#ffe8ea; padding:1px 6px; border-radius:4px; border:1.5px solid #18191c;">ชั้น <span id="safe-p2-stage">1</span>/3</span>
           </div>
-          <div style="font-size:14px; margin:6px 0;">ค่าปัจจุบัน: <b id="safe-p2-val">0</b></div>
-          <div style="height:12px; background:#334155; border-radius:6px; margin:8px 0; overflow:hidden;">
-            <div id="safe-p2-bar" style="height:100%; width:0%; background:#f43f5e; transition:width 0.1s;"></div>
+
+          <!-- Rotary Knob Visual -->
+          <div style="position:relative; width:96px; height:96px; margin:8px auto; border-radius:50%; background:#18191c; border:3px solid #ff4554; display:grid; place-items:center; box-shadow:0 4px 0 rgba(0,0,0,0.25);">
+            <div id="safe-p2-dial" style="position:absolute; inset:6px; border-radius:50%; border:2px dashed #64748b; transition:transform 0.15s ease;">
+              <div style="width:6px; height:12px; background:#ff4554; margin:0 auto; border-radius:3px;"></div>
+            </div>
+            <div style="font-family:'JetBrains Mono', monospace; font-size:22px; font-weight:800; color:#fff; z-index:2;" id="safe-p2-val">0</div>
           </div>
-          <div id="safe-p2-status" style="font-size:12px; color:#94a3b8;">หมุนให้ตรงแล้วกด #</div>
+
+          <div id="safe-p2-hint" style="background:#fffbeb; border:2px solid #18191c; border-radius:8px; padding:4px; font-size:12px; font-weight:700; color:#b45309; min-height:32px; display:grid; place-items:center; margin-bottom:6px;">
+            รหัสชั้นแรก: <b>${this.targets[0]}</b>
+          </div>
+
+          <div style="height:8px; background:#e2e8f0; border-radius:4px; border:1.5px solid #18191c; overflow:hidden; margin-bottom:6px;">
+            <div id="safe-p2-bar" style="height:100%; width:0%; background:#ff4554; transition:width 0.1s;"></div>
+          </div>
+          <div id="safe-p2-status" style="font-size:11px; font-weight:700; color:#646875;">หมุนให้ตรงแล้วกด #</div>
         </div>
       </div>
-      <div style="text-align:center; margin-top:12px; font-size:12px; color:#64748b;">
-        ระบบปรับค่าทีละ 5 | ชั้น 2 และ 3 จะแสดงเฉพาะ "ระยะห่างจากรหัส"
+
+      <div style="text-align:center; margin-top:10px; font-size:11px; color:#646875; font-weight:600;">
+        🎛️ หมุนทีละ Step 5 | ชั้น 2-3 จะใบ้เฉพาะ <b>"ระยะห่าง"</b> แล้วกด <b>#</b>
       </div>
     `;
   },
@@ -72,7 +94,6 @@ const GameSafe = {
   handlePacket(role, data) {
     if (this.isEnded) return;
 
-    // รับค่า Potentiometer พร้อม Snap เป็น Step 5
     if (data.type === "POT") {
       const snappedVal = this.snapTo5(data.val);
       if (role === 1) this.p1CurrentVal = snappedVal;
@@ -80,8 +101,6 @@ const GameSafe = {
 
       this.updatePlayerUI(role);
     }
-
-    // กดปุ่ม '#' ยืนยันปลดล็อคชั้นปัจจุบัน
     else if (data.type === "KEY" && data.key === "#") {
       const stage = role === 1 ? this.p1Stage : this.p2Stage;
       const currentVal = role === 1 ? this.p1CurrentVal : this.p2CurrentVal;
@@ -92,8 +111,6 @@ const GameSafe = {
         else this.p2Stage++;
 
         const newStage = role === 1 ? this.p1Stage : this.p2Stage;
-
-        // เช็คว่าปลดครบ 3 ชั้นหรือยัง
         if (newStage >= 3) {
           this.finishGame(role);
         } else {
@@ -112,33 +129,31 @@ const GameSafe = {
     const stageEl = document.getElementById(`safe-${prefix}-stage`);
     const valEl = document.getElementById(`safe-${prefix}-val`);
     const barEl = document.getElementById(`safe-${prefix}-bar`);
+    const dialEl = document.getElementById(`safe-${prefix}-dial`);
     const hintEl = document.getElementById(`safe-${prefix}-hint`);
     const statusEl = document.getElementById(`safe-${prefix}-status`);
 
     if (stageEl) stageEl.textContent = stage + 1;
     if (valEl) valEl.textContent = currentVal;
     if (barEl) barEl.style.width = `${currentVal}%`;
+    if (dialEl) dialEl.style.transform = `rotate(${(currentVal / 100) * 300 - 150}deg)`;
 
-    // อัปเดตคำใบ้ตามด่าน
     if (hintEl) {
       if (stage === 0) {
-        // ล็อคแรก: บอกเลขตรงๆ
-        hintEl.innerHTML = `เป้าหมาย: <b style="font-size:18px;">${targetVal}</b>`;
+        hintEl.innerHTML = `รหัสชั้นแรก: <b>${targetVal}</b>`;
       } else {
-        // ล็อค 2 และ 3: บอกเฉพาะระยะห่าง ไม่บอกทิศทาง
         const diff = Math.abs(currentVal - targetVal);
-        hintEl.innerHTML = `คำใบ้: <b>ห่างจากรหัสอยู่ ${diff}</b>`;
+        hintEl.innerHTML = `📡 ห่างจากรหัสอยู่ <b>${diff}</b>`;
       }
     }
 
-    // แสดงสถานะเมื่อเลขตรงเป๊ะ
     if (statusEl) {
       if (currentVal === targetVal) {
-        statusEl.textContent = "🟢 ตรงเป๊ะแล้ว! กดปุ่ม # เพื่อปลดล็อค!";
-        statusEl.style.color = "#4ade80";
+        statusEl.textContent = "🟢 ตรงเป๊ะ! กด # ปลดล็อค!";
+        statusEl.style.color = "#149e44";
       } else {
-        statusEl.textContent = "หมุนหาค่าที่ถูกต้องแล้วกด #";
-        statusEl.style.color = "#94a3b8";
+        statusEl.textContent = "หมุนหาค่าแล้วกด #";
+        statusEl.style.color = "#646875";
       }
     }
   },
