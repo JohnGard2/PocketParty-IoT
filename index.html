@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PocketParty-IoT - Members & Documentation</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding-top: 70px;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+        }
+        .hardware-icon {
+            font-size: 2.2rem;
+            line-height: 1;
+        }
+        .member-avatar {
+            width: 90px;
+            height: 90px;
+            background-color: #e9ecef;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: #6c757d;
+            margin: 0 auto 1rem;
+        }
+        .code-box {
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 8px;
+            padding: 1.25rem;
+            max-height: 520px;
+            overflow-y: auto;
+            font-family: Consolas, 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        .btn-copy {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+        }
+        footer {
+            background-color: #212529;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand text-warning" href="index.html">
+                <i class="bi bi-controller me-2"></i>PocketParty-IoT
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html"><i class="bi bi-speedometer2 me-1"></i>Dashboard / Game</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#documentation"><i class="bi bi-file-earmark-text me-1"></i>Documentation</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#hardware"><i class="bi bi-cpu me-1"></i>Hardware</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#members"><i class="bi bi-people me-1"></i>Members</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Project Overview & Documentation -->
+    <div class="container my-5" id="documentation">
+        <div class="text-center mb-5">
+            <span class="badge bg-warning text-dark px-3 py-2 rounded-pill mb-2">IoT Mini-Game Controller</span>
+            <h1 class="fw-bold">PocketParty IoT Documentation</h1>
+            <p class="text-muted mx-auto" style="max-width: 750px;">
+                ระบบควบคุมมินิเกมไร้สายผ่านเครือข่ายอินเทอร์เน็ต (IoT) ด้วยโปรโตคอล MQTT เชื่อมต่อผู้เล่นหลายคน รองรับอินพุตหลากหลาย ทั้งการตรวจจับความเคลื่อนไหวด้วยอัลตราโซนิก, แป้นพิมพ์ปุ่มกด, ตัวต้านทานปรับค่าได้ และจอแสดงผล LCD แสดงผลสถานะแบบ Real-time
+            </p>
+        </div>
+
+        <!-- Hardware Section (No Image Slots) -->
+        <h2 class="text-center fw-bold mb-4" id="hardware">ฮาร์ดแวร์และเซนเซอร์ที่ใช้งาน</h2>
+        <div class="row g-4 mb-5">
+            <!-- Board -->
+            <div class="col-md-4">
+                <div class="card h-100 p-3">
+                    <div class="card-body">
+                        <div class="hardware-icon text-primary mb-3">
+                            <i class="bi bi-cpu"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Arduino UNO R4 WiFi</h5>
+                        <p class="card-text text-muted">บอร์ดควบคุมหลัก ทำหน้าที่ประมวลผลเซนเซอร์ จัดการตรรกะของเกม และเชื่อมต่อเครือข่ายอินเทอร์เน็ตผ่าน Wi-Fi เพื่อสื่อสารกับ MQTT Broker</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ultrasonic -->
+            <div class="col-md-4">
+                <div class="card h-100 p-3">
+                    <div class="card-body">
+                        <div class="hardware-icon text-info mb-3">
+                            <i class="bi bi-soundwave"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Ultrasonic Sensor (HC-SR04)</h5>
+                        <p class="card-text text-muted">ตรวจจับระยะทางของมือผ่านคลื่นเสียง ใช้พิน Trig (10) และ Echo (11) รองรับการตรวจจับจังหวะก้าวในเกมวิ่ง (RUN) และตรวจความลึกในการปั๊มลูกโป่ง (BALLOON)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Keypad -->
+            <div class="col-md-4">
+                <div class="card h-100 p-3">
+                    <div class="card-body">
+                        <div class="hardware-icon text-warning mb-3">
+                            <i class="bi bi-grid-3x3"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Keypad 4x4 Matrix</h5>
+                        <p class="card-text text-muted">แป้นปุ่มกด 16 ปุ่ม (Rows: 9, 8, 7, 6 / Cols: 5, 4, 3, 2) สำหรับรับคำสั่งกดปุ่ม ตอบคำถาม หรือป้อนรหัสตัวเลขในมินิเกมต่าง ๆ</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Potentiometer -->
+            <div class="col-md-6">
+                <div class="card h-100 p-3">
+                    <div class="card-body">
+                        <div class="hardware-icon text-success mb-3">
+                            <i class="bi bi-arrow-repeat"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">Potentiometer (A0)</h5>
+                        <p class="card-text text-muted">ตัวต้านทานปรับค่าได้ ต่อเข้าที่ขาแอนะล็อก A0 แปลงสัญญาณแรงดันเป็นสเกล 0–100% สำหรับฟังก์ชันหมุนรหัสปลดล็อกตู้เซฟ (SAFE Mode)</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LCD I2C -->
+            <div class="col-md-6">
+                <div class="card h-100 p-3">
+                    <div class="card-body">
+                        <div class="hardware-icon text-danger mb-3">
+                            <i class="bi bi-tv"></i>
+                        </div>
+                        <h5 class="card-title fw-bold">LCD Display 16x2 (I2C)</h5>
+                        <p class="card-text text-muted">จอแสดงผลขนาด 16 ตัวอักษร 2 บรรทัดผ่านบัส I2C (Address 0x27) แสดงรหัสเครื่อง (Device ID), ตำแหน่งผู้เล่น (P1/P2), โหมดเกม และข้อความแจ้งเตือน</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Special Feature Section -->
+        <section class="card bg-white p-4 mb-5 border-start border-warning border-5">
+            <h4 class="fw-bold mb-2"><i class="bi bi-stars text-warning me-2"></i>การทำงานร่วมกับระบบ MQTT</h4>
+            <p class="mb-0 text-secondary">
+                อุปกรณ์สื่อสารผ่าน MQTT Broker โดยส่งสตรีมข้อมูลอินพุตไปยัง Topic <code>game/thai99/stream</code> และรอรับคำสั่งควบคุมหรือข้อความแสดงผลบนหน้าจอผ่าน Topic <code>game/thai99/cmd</code> ช่วยให้อุปกรณ์สลับบทบาทและรองรับโหมดเกมใหม่ได้ทันที
+            </p>
+        </section>
+
+        <!-- Source Code Section -->
+        <h2 class="text-center fw-bold mb-4">ซอร์สโค้ด Arduino UNO R4 WiFi</h2>
+        <div class="card position-relative mb-5">
+            <button class="btn btn-sm btn-outline-warning btn-copy" onclick="copyCode()" id="copyBtn">
+                <i class="bi bi-clipboard me-1"></i>คัดลอกโค้ด
+            </button>
+            <div class="card-body p-0">
+                <pre class="code-box mb-0"><code id="codeToCopy">#include &lt;WiFiS3.h&gt;
+#include &lt;PubSubClient.h&gt;
+#include &lt;Keypad.h&gt;
+#include &lt;Wire.h&gt;
+#include &lt;LiquidCrystal_I2C.h&gt;
+
+const char* ssid        = "";
+const char* password    = "";
+const char* mqtt_server = "broker.emqx.io";
+const int   mqtt_port   = 1883;
+const char* ROOM_CODE   = "thai99";
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+const int TRIG_PIN = 10;
+const int ECHO_PIN = 11;
+const int POT_PIN  = A0;
+
+const byte ROWS = 4;
+const byte COLS = 4;
+char keys[ROWS][COLS] = {
+  {'1','2','3','A'},
+  {'4','5','6','B'},
+  {'7','8','9','C'},
+  {'*','0','#','D'}
+};
+byte rowPins[ROWS] = {9, 8, 7, 6};
+byte colPins[COLS] = {5, 4, 3, 2};
+Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+char deviceId[10];
+int  myRole = 0;
+String currentGameMode = "ALL";
+
+char topicStream[50];
+char topicCmd[50];
+char mqttClientId[30];
+
+unsigned long lastPingTime   = 0;
+unsigned long lastSensorPoll = 0;
+unsigned long lastMqttSend   = 0;
+const unsigned long MQTT_RATE_LIMIT = 80;
+
+bool inStroke = false;
+int  currentPistonDepth = 0;
+
+bool handInZone = false;
+unsigned long lastStepTime = 0;
+const unsigned long STEP_COOLDOWN = 100;
+
+int lastPotVal = -1;
+
+void showLCD(String line1, String line2) {
+  lcd.setCursor(0, 0);
+  lcd.print(line1 + "                ");
+  lcd.setCursor(0, 1);
+  lcd.print(line2 + "                ");
+}
+
+void updateDefaultScreen(String statusMsg = "READY") {
+  if (myRole == 0) {
+    showLCD("ID: " + String(deviceId), "WAITING PAIR...");
+  } else {
+    showLCD("P" + String(myRole) + " [" + String(deviceId) + "] " + currentGameMode, "&gt; " + statusMsg);
+  }
+}
+
+void sendPacket(String jsonPayload, bool force = false) {
+  if (!force && (millis() - lastMqttSend &lt; MQTT_RATE_LIMIT)) return;
+  lastMqttSend = millis();
+
+  client.publish(topicStream, jsonPayload.c_str());
+  Serial.println("[TX] " + jsonPayload);
+}
+
+void sendHandshakePing() {
+  String payload = "{\"type\":\"PING\",\"id\":\"" + String(deviceId) + "\"}";
+  sendPacket(payload, true);
+}
+
+void mqttCallback(char* topic, byte* payload, unsigned int length) {
+  String msg = "";
+  for (unsigned int i = 0; i &lt; length; i++) msg += (char)payload[i];
+  Serial.println("[RX] " + msg);
+
+  if (msg.indexOf("WHO_IS_HERE") &gt;= 0) {
+    sendHandshakePing();
+  }
+  else if (msg.indexOf("\"type\":\"ROLE\"") &gt;= 0) {
+    if (msg.indexOf("\"p1\":\"" + String(deviceId) + "\"") &gt;= 0) {
+      myRole = 1;
+      updateDefaultScreen("ASSIGNED P1");
+    } else if (msg.indexOf("\"p2\":\"" + String(deviceId) + "\"") &gt;= 0) {
+      myRole = 2;
+      updateDefaultScreen("ASSIGNED P2");
+    }
+  }
+  else if (msg.indexOf("\"type\":\"MODE\"") &gt;= 0) {
+    int idx = msg.indexOf("\"mode\":\"");
+    if (idx &gt;= 0) {
+      currentGameMode = msg.substring(idx + 8, msg.indexOf("\"", idx + 8));
+      Serial.println("[MODE] Switched to: " + currentGameMode);
+      updateDefaultScreen("MODE: " + currentGameMode);
+    }
+  }
+  else if (msg.indexOf("\"type\":\"LCD\"") &gt;= 0) {
+    bool isForMe = (msg.indexOf("\"id\":\"ALL\"") &gt;= 0) || 
+                   (msg.indexOf("\"id\":\"" + String(deviceId) + "\"") &gt;= 0) ||
+                   (myRole == 1 && msg.indexOf("\"id\":\"P1\"") &gt;= 0) ||
+                   (myRole == 2 && msg.indexOf("\"id\":\"P2\"") &gt;= 0);
+
+    if (isForMe) {
+      int idxL1 = msg.indexOf("\"l1\":\"");
+      int idxL2 = msg.indexOf("\"l2\":\"");
+      if (idxL1 &gt;= 0 &amp;&amp; idxL2 &gt;= 0) {
+        String l1 = msg.substring(idxL1 + 6, msg.indexOf("\"", idxL1 + 6));
+        String l2 = msg.substring(idxL2 + 6, msg.indexOf("\"", idxL2 + 6));
+        showLCD(l1, l2);
+      }
+    }
+  }
+}
+
+long readUltrasonicCm() {
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+  long duration = pulseIn(ECHO_PIN, HIGH, 18000);
+  if (duration == 0) return 999;
+  return duration * 0.034 / 2;
+}
+
+void pollSensors() {
+  // --- Keypad ---
+  if (currentGameMode == "KEYPAD" || currentGameMode == "BALLOON" || currentGameMode == "SAFE" || currentGameMode == "ALL") {
+    char key = keypad.getKey();
+    if (key) {
+      String payload = "{\"type\":\"KEY\",\"id\":\"" + String(deviceId) + "\",\"key\":\"" + String(key) + "\"}";
+      sendPacket(payload, true);
+    }
+  }
+
+  // --- Potentiometer ---
+  if (currentGameMode == "SAFE" || currentGameMode == "ALL") {
+    int raw = analogRead(POT_PIN);
+    int potVal = constrain(map(raw, 0, 920, 0, 100), 0, 100);
+
+    if (abs(potVal - lastPotVal) &gt;= 2) {
+      lastPotVal = potVal;
+      String payload = "{\"type\":\"POT\",\"id\":\"" + String(deviceId) + "\",\"val\":" + String(potVal) + "}";
+      sendPacket(payload);
+    }
+  }
+
+  // --- Ultrasonic ---
+  if (currentGameMode == "RUN" || currentGameMode == "BALLOON" || currentGameMode == "ALL") {
+    if (millis() - lastSensorPoll &gt;= 30) {
+      lastSensorPoll = millis();
+      long dist = readUltrasonicCm();
+      if (currentGameMode == "RUN" || currentGameMode == "ALL") {
+        if (dist &gt;= 3 &amp;&amp; dist &lt;= 20) {
+          handInZone = true;
+        } else if (handInZone &amp;&amp; (dist &gt; 24 || dist == 999)) {
+          handInZone = false;
+          if (millis() - lastStepTime &gt; STEP_COOLDOWN) {
+            lastStepTime = millis();
+            String payload = "{\"type\":\"STEP\",\"id\":\"" + String(deviceId) + "\"}";
+            sendPacket(payload, true);
+          }
+        }
+      }
+
+      if (currentGameMode == "BALLOON" || currentGameMode == "ALL") {
+        if (dist &gt;= 4 &amp;&amp; dist &lt;= 25) {
+          inStroke = true;
+          int depth = constrain(map(dist, 25, 4, 0, 100), 0, 100);
+          if (depth &gt; currentPistonDepth) currentPistonDepth = depth;
+        } else if (inStroke &amp;&amp; (dist &gt; 26 || dist == 999)) {
+          inStroke = false;
+          if (currentPistonDepth &gt;= 10) {
+            String payload = "{\"type\":\"PUMP\",\"id\":\"" + String(deviceId) + "\",\"depth\":" + String(currentPistonDepth) + "}";
+            sendPacket(payload, true);
+          }
+          currentPistonDepth = 0;
+        }
+      }
+    }
+  }
+}
+
+void setupWiFi() {
+  showLCD("Connecting WiFi", ssid);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) delay(400);
+}
+
+void reconnectMQTT() {
+  while (!client.connected()) {
+    showLCD("Connecting MQTT", "Broker EMQX...");
+    if (client.connect(mqttClientId)) {
+      client.subscribe(topicCmd);
+      updateDefaultScreen();
+      sendHandshakePing();
+    } else {
+      delay(2000);
+    }
+  }
+}
+
+void setup() {
+  Serial.begin(115200);
+
+  lcd.init();
+  lcd.backlight();
+  showLCD("Controller Boot", "Init Sensors...");
+
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  keypad.setDebounceTime(80);
+
+  randomSeed(analogRead(A1) + millis());
+  sprintf(deviceId, "D%ld", random(1000, 9999));
+
+  sprintf(topicStream, "game/%s/stream", ROOM_CODE);
+  sprintf(topicCmd, "game/%s/cmd", ROOM_CODE);
+  sprintf(mqttClientId, "UnoR4_%s_%lu", deviceId, millis());
+
+  setupWiFi();
+  client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(mqttCallback);
+}
+
+void loop() {
+  if (WiFi.status() != WL_CONNECTED) setupWiFi();
+  if (!client.connected()) reconnectMQTT();
+  client.loop();
+
+  pollSensors();
+
+  if (myRole == 0 &amp;&amp; (millis() - lastPingTime &gt; 3000)) {
+    lastPingTime = millis();
+    sendHandshakePing();
+  }
+}</code></pre>
+            </div>
+        </div>
+
+        <!-- Members Section (2 Members) -->
+        <div id="members" class="pt-4">
+            <h2 class="text-center fw-bold mb-4">สมาชิกในกลุ่ม</h2>
+            <div class="row justify-content-center g-4">
+                <!-- Member 1 -->
+                <div class="col-md-5 col-sm-6">
+                    <div class="card h-100 text-center p-4">
+                        <div class="card-body">
+                            <div class="member-avatar">
+                                <i class="bi bi-person"></i>
+                            </div>
+                            <h4 class="card-title fw-bold">ต่อตระกูล ดวงแก้ว</h4>
+                            <p class="card-text text-muted fs-5 mb-0">รหัสนักศึกษา: <strong>68070047</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Member 2 -->
+                <div class="col-md-5 col-sm-6">
+                    <div class="card h-100 text-center p-4">
+                        <div class="card-body">
+                            <div class="member-avatar">
+                                <i class="bi bi-person"></i>
+                            </div>
+                            <h4 class="card-title fw-bold">ธนวัฒน์ แท่งทอง</h4>
+                            <p class="card-text text-muted fs-5 mb-0">รหัสนักศึกษา: <strong>68070060</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-1 fw-semibold">PocketParty-IoT &copy; 2026. All rights reserved.</p>
+            <small class="text-muted">Interactive Multi-Player IoT Controller powered by Arduino UNO R4 & EMQX MQTT</small>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function copyCode() {
+            const codeToCopy = document.getElementById('codeToCopy');
+            const copyBtn = document.getElementById('copyBtn');
+            
+            navigator.clipboard.writeText(codeToCopy.textContent)
+                .then(() => {
+                    copyBtn.innerHTML = '<i class="bi bi-check2 me-1"></i>คัดลอกสำเร็จ!';
+                    copyBtn.classList.replace('btn-outline-warning', 'btn-success');
+                    setTimeout(() => {
+                        copyBtn.innerHTML = '<i class="bi bi-clipboard me-1"></i>คัดลอกโค้ด';
+                        copyBtn.classList.replace('btn-success', 'btn-outline-warning');
+                    }, 2000);
+                })
+                .catch(err => {
+                    console.error('คัดลอกไม่สำเร็จ:', err);
+                });
+        }
+    </script>
+</body>
+</html>
