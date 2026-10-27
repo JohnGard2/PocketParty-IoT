@@ -44,4 +44,6 @@
 [ Controller 2: UNO R4 ] ──(Wi-Fi / MQTT)──┘
   (Keypad, Ultrasonic)
 ```
-###Poster
+# Poster
+
+![Poster](./Poster/pic.png)
